@@ -16,6 +16,19 @@ type Category struct {
 	ParentID  sql.NullInt64
 }
 
+type Content struct {
+	ID             int
+	Title          string
+	Summary        string
+	ThumbnailURL   string
+	SourceURL      string
+	SourcePlatform string
+	AuthorName     string
+	CategoryID     int
+	CategoryName   string
+	SortOrder      int
+}
+
 func categoriesHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -80,6 +93,105 @@ func categoriesHandler(db *sql.DB) http.HandlerFunc {
 				return
 			}
 			http.Redirect(w, r, "/categories", http.StatusSeeOther)
+
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}
+}
+
+func contentsHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			rows, err := db.Query(`
+				SELECT c.id, c.title, c.summary, c.thumbnail_url, c.source_url,
+				       c.source_platform, c.author_name, c.category_id,
+				       COALESCE(cat.name, ''), c.sort_order
+				FROM contents c
+				LEFT JOIN categories cat ON c.category_id = cat.id
+				ORDER BY c.sort_order`)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			defer rows.Close()
+
+			var contents []Content
+			for rows.Next() {
+				var ct Content
+				if err := rows.Scan(&ct.ID, &ct.Title, &ct.Summary, &ct.ThumbnailURL,
+					&ct.SourceURL, &ct.SourcePlatform, &ct.AuthorName,
+					&ct.CategoryID, &ct.CategoryName, &ct.SortOrder); err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				contents = append(contents, ct)
+			}
+			if err := rows.Err(); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			// Also load categories for the dropdown
+			catRows, err := db.Query("SELECT id, name FROM categories ORDER BY sort_order")
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			defer catRows.Close()
+
+			var cats []Category
+			for catRows.Next() {
+				var c Category
+				if err := catRows.Scan(&c.ID, &c.Name); err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				cats = append(cats, c)
+			}
+
+			data := struct {
+				Contents   []Content
+				Categories []Category
+			}{contents, cats}
+
+			tmpl, err := template.ParseFiles("templates/contents.html")
+			if err != nil {
+				// Fallback: plain text output for testing
+				w.Header().Set("Content-Type", "text/plain")
+				for _, ct := range contents {
+					fmt.Fprintf(w, "Content: %s (category=%s, platform=%s)\n", ct.Title, ct.CategoryName, ct.SourcePlatform)
+				}
+				return
+			}
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			tmpl.Execute(w, data)
+
+		case http.MethodPost:
+			if err := r.ParseForm(); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			title := r.FormValue("title")
+			summary := r.FormValue("summary")
+			thumbnailURL := r.FormValue("thumbnail_url")
+			sourceURL := r.FormValue("source_url")
+			sourcePlatform := r.FormValue("source_platform")
+			authorName := r.FormValue("author_name")
+			categoryID, _ := strconv.Atoi(r.FormValue("category_id"))
+			sortOrder, _ := strconv.Atoi(r.FormValue("sort_order"))
+
+			_, err := db.Exec(
+				`INSERT INTO contents (title, summary, thumbnail_url, source_url, source_platform, author_name, category_id, sort_order)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+				title, summary, thumbnailURL, sourceURL, sourcePlatform, authorName, categoryID, sortOrder,
+			)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			http.Redirect(w, r, "/contents", http.StatusSeeOther)
 
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
