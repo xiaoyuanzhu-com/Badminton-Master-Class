@@ -26,11 +26,19 @@ func initDB(dbPath string) (*sql.DB, error) {
 }
 
 func main() {
-	db, err := initDB("yuqiupu.db")
+	dbPath := "yuqiupu.db"
+	db, err := initDB(dbPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/categories", http.StatusSeeOther)
+	})
+	http.HandleFunc("/categories", categoriesHandler(db))
+	http.HandleFunc("/contents", contentsHandler(db))
+	http.HandleFunc("/export", exportHandler(db, dbPath))
 
 	fmt.Println("Admin panel running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))

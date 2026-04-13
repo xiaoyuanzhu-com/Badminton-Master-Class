@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -196,5 +198,25 @@ func contentsHandler(db *sql.DB) http.HandlerFunc {
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
+	}
+}
+
+func exportHandler(db *sql.DB, dbPath string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if _, err := db.Exec("PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		f, err := os.Open(dbPath)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer f.Close()
+
+		w.Header().Set("Content-Type", "application/x-sqlite3")
+		w.Header().Set("Content-Disposition", "attachment; filename=yuqiupu.db")
+		io.Copy(w, f)
 	}
 }

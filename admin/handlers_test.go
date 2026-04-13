@@ -135,3 +135,24 @@ func TestCreateContent(t *testing.T) {
 		t.Errorf("expected 1 row, got %d", count)
 	}
 }
+
+func TestExportDB(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	dbPath := "test_" + t.Name() + ".db"
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodGet, "/export", nil)
+	w := httptest.NewRecorder()
+	exportHandler(db, dbPath).ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	ct := w.Header().Get("Content-Type")
+	if ct != "application/x-sqlite3" {
+		t.Errorf("expected content-type application/x-sqlite3, got %s", ct)
+	}
+	if w.Body.Len() == 0 {
+		t.Error("expected non-empty body")
+	}
+}
