@@ -216,7 +216,7 @@ func exportHandler(db *sql.DB, dbPath string) http.HandlerFunc {
 		defer f.Close()
 
 		w.Header().Set("Content-Type", "application/x-sqlite3")
-		w.Header().Set("Content-Disposition", "attachment; filename=yuqiupu.db")
+		w.Header().Set("Content-Disposition", "attachment; filename=badminton-master-class.db")
 		io.Copy(w, f)
 	}
 }

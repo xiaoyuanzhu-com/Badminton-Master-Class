@@ -40,6 +40,6 @@ func main() {
 	http.HandleFunc("/contents", contentsHandler(db))
 	http.HandleFunc("/export", exportHandler(db, dbPath))
 
-	fmt.Println("Admin panel running on :8080")
+	fmt.Println("羽球大师课 Admin panel running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

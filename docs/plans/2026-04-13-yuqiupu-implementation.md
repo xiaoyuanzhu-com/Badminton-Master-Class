@@ -1,4 +1,4 @@
-# 羽球谱 (YuQiuPu) Implementation Plan
+# 羽球大师课 (Badminton Master Class) Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
@@ -385,7 +385,7 @@ Expected: PASS
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>羽球谱 - 分类管理</title>
+    <title>羽球大师课 - 分类管理</title>
     <style>
         body { font-family: system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
         table { width: 100%; border-collapse: collapse; margin: 20px 0; }
@@ -577,7 +577,7 @@ Expected: PASS
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>羽球谱 - 内容管理</title>
+    <title>羽球大师课 - 内容管理</title>
     <style>
         body { font-family: system-ui, sans-serif; max-width: 1000px; margin: 40px auto; padding: 0 20px; }
         table { width: 100%; border-collapse: collapse; margin: 20px 0; }
@@ -722,7 +722,7 @@ func main() {
 		http.Redirect(w, r, "/categories", http.StatusSeeOther)
 	})
 
-	fmt.Println("羽球谱 Admin: http://localhost:8080")
+	fmt.Println("羽球大师课 Admin: http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 ```
@@ -905,7 +905,7 @@ struct HomeView: View {
                     }
                 }
             }
-            .navigationTitle("羽球谱")
+            .navigationTitle("羽球大师课")
             .onAppear { categories = db.categories() }
         }
     }

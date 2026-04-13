@@ -16,7 +16,7 @@ struct HomeView: View {
                     .padding(.vertical, 4)
                 }
             }
-            .navigationTitle("羽球谱")
+            .navigationTitle("羽球大师课")
             .navigationDestination(for: Category.self) { category in
                 CategoryView(category: category)
             }
