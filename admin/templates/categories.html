@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Categories - Admin</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        nav { margin-bottom: 20px; }
+        nav a { margin-right: 15px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #f5f5f5; }
+        form { margin-top: 20px; }
+        label { display: block; margin-top: 10px; }
+        input { padding: 5px; margin-top: 3px; }
+        button { margin-top: 15px; padding: 8px 16px; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/categories">Categories</a>
+        <a href="/contents">Contents</a>
+        <a href="/export">Export</a>
+    </nav>
+
+    <h1>Categories</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Icon</th>
+                <th>Sort Order</th>
+                <th>Parent ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .}}
+            <tr>
+                <td>{{.ID}}</td>
+                <td>{{.Name}}</td>
+                <td>{{.Icon}}</td>
+                <td>{{.SortOrder}}</td>
+                <td>{{if .ParentID.Valid}}{{.ParentID.Int64}}{{else}}-{{end}}</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+
+    <h2>Add Category</h2>
+    <form method="POST" action="/categories">
+        <label>Name: <input type="text" name="name" required></label>
+        <label>Icon: <input type="text" name="icon"></label>
+        <label>Sort Order: <input type="number" name="sort_order" value="0"></label>
+        <label>Parent ID: <input type="number" name="parent_id"></label>
+        <button type="submit">Add</button>
+    </form>
+</body>
+</html>
