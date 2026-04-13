@@ -1,4 +1,4 @@
-package com.yuqiupu.app.models
+package com.bmc.app.models
 
 data class ContentItem(
     val id: Int,

@@ -1,4 +1,4 @@
-package com.yuqiupu.app.ui
+package com.bmc.app.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -8,10 +8,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.yuqiupu.app.data.DataSync
+import com.bmc.app.data.DataSync
 
 @Composable
-fun YuQiuPuApp() {
+fun BMCApp() {
     val navController = rememberNavController()
     val context = LocalContext.current
 

@@ -5,7 +5,7 @@ final class Database {
     static let shared = Database()
 
     private var db: OpaquePointer?
-    private let dbName = "yuqiupu.db"
+    private let dbName = "bmc.db"
     private var dbURL: URL {
         FileManager.default
             .urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -23,7 +23,7 @@ final class Database {
         let fileManager = FileManager.default
         guard !fileManager.fileExists(atPath: dbURL.path) else { return }
 
-        guard let bundledURL = Bundle.main.url(forResource: "yuqiupu", withExtension: "db") else {
+        guard let bundledURL = Bundle.main.url(forResource: "bmc", withExtension: "db") else {
             print("[Database] Bundled DB not found in bundle")
             return
         }

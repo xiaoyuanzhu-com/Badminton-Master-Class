@@ -1,4 +1,4 @@
-package com.yuqiupu.app.data
+package com.bmc.app.data
 
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
@@ -10,7 +10,7 @@ import java.net.URL
 object DataSync {
 
     private const val REMOTE_URL =
-        "https://your-bucket.oss-cn-hangzhou.aliyuncs.com/yuqiupu.db"
+        "https://your-bucket.oss-cn-hangzhou.aliyuncs.com/bmc.db"
 
     /**
      * Download the latest DB from the remote URL and replace the local copy.
@@ -29,7 +29,7 @@ object DataSync {
                         return@withContext
                     }
 
-                    val tempFile = File(context.cacheDir, "yuqiupu_download.db")
+                    val tempFile = File(context.cacheDir, "bmc_download.db")
                     connection.inputStream.use { input ->
                         tempFile.outputStream().use { output ->
                             input.copyTo(output)

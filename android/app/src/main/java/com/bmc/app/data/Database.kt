@@ -1,16 +1,16 @@
-package com.yuqiupu.app.data
+package com.bmc.app.data
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
-import com.yuqiupu.app.models.Category
-import com.yuqiupu.app.models.ContentItem
+import com.bmc.app.models.Category
+import com.bmc.app.models.ContentItem
 import java.io.File
 import java.io.FileOutputStream
 
 class Database private constructor(context: Context) {
 
     private val appContext = context.applicationContext
-    private val dbName = "yuqiupu.db"
+    private val dbName = "bmc.db"
     private val dbFile: File get() = appContext.getDatabasePath(dbName)
     private var db: SQLiteDatabase? = null
 

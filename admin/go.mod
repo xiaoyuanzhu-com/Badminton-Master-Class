@@ -1,4 +1,4 @@
-module yuqiupu/admin
+module badminton-master-class/admin
 
 go 1.23.3
 

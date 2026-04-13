@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct YuQiuPuApp: App {
+struct BMCApp: App {
     var body: some Scene {
         WindowGroup {
             HomeView()

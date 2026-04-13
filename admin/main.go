@@ -26,7 +26,7 @@ func initDB(dbPath string) (*sql.DB, error) {
 }
 
 func main() {
-	dbPath := "yuqiupu.db"
+	dbPath := "bmc.db"
 	db, err := initDB(dbPath)
 	if err != nil {
 		log.Fatal(err)

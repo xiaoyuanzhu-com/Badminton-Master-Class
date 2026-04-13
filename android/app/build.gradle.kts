@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.yuqiupu.app"
+    namespace = "com.bmc.app"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.yuqiupu.app"
+        applicationId = "com.bmc.app"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

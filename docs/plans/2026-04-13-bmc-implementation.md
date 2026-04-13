@@ -13,7 +13,7 @@
 ## Repo Structure
 
 ```
-yuqiupu/
+bmc/
 ├── admin/          # Go admin panel
 ├── ios/            # Swift iOS app
 ├── android/        # Kotlin Android app
@@ -86,7 +86,7 @@ INSERT INTO contents (title, summary, source_url, source_platform, author_name, 
 
 **Step 3: Test schema by creating a DB**
 
-Run: `sqlite3 data/yuqiupu.db < data/schema.sql && sqlite3 data/yuqiupu.db < data/seed.sql && sqlite3 data/yuqiupu.db "SELECT c.title, cat.name FROM contents c JOIN categories cat ON c.category_id = cat.id;"`
+Run: `sqlite3 data/bmc.db < data/schema.sql && sqlite3 data/bmc.db < data/seed.sql && sqlite3 data/bmc.db "SELECT c.title, cat.name FROM contents c JOIN categories cat ON c.category_id = cat.id;"`
 
 Expected: Two rows of content with their category names.
 
@@ -108,7 +108,7 @@ git commit -m "feat: add database schema and seed data"
 
 **Step 1: Initialize Go module**
 
-Run: `cd admin && go mod init yuqiupu/admin`
+Run: `cd admin && go mod init badminton-master-class/admin`
 
 **Step 2: Write test for DB initialization**
 
@@ -183,7 +183,7 @@ func initDB(dbPath string) (*sql.DB, error) {
 }
 
 func main() {
-	db, err := initDB("yuqiupu.db")
+	db, err := initDB("bmc.db")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -691,7 +691,7 @@ func exportHandler(db *sql.DB, dbPath string) http.HandlerFunc {
 		db.Exec("PRAGMA wal_checkpoint(TRUNCATE)")
 
 		w.Header().Set("Content-Type", "application/x-sqlite3")
-		w.Header().Set("Content-Disposition", "attachment; filename=yuqiupu.db")
+		w.Header().Set("Content-Disposition", "attachment; filename=bmc.db")
 		http.ServeFile(w, r, dbPath)
 	}
 }
@@ -708,7 +708,7 @@ Update `main()` in `admin/main.go`:
 
 ```go
 func main() {
-	dbPath := "yuqiupu.db"
+	dbPath := "bmc.db"
 	db, err := initDB(dbPath)
 	if err != nil {
 		log.Fatal(err)
@@ -744,20 +744,20 @@ git commit -m "feat: admin export and route wiring"
 ## Task 6: iOS App — Project Setup + Bundled Data
 
 **Files:**
-- Create: `ios/YuQiuPu.xcodeproj` (via Xcode or `swift package init`)
-- Create: `ios/YuQiuPu/App.swift`
-- Create: `ios/YuQiuPu/Models.swift`
-- Create: `ios/YuQiuPu/Database.swift`
-- Create: `ios/YuQiuPu/Resources/yuqiupu.db` (bundled default)
+- Create: `ios/BadmintonMasterClass.xcodeproj` (via Xcode or `swift package init`)
+- Create: `ios/BadmintonMasterClass/App.swift`
+- Create: `ios/BadmintonMasterClass/Models.swift`
+- Create: `ios/BadmintonMasterClass/Database.swift`
+- Create: `ios/BadmintonMasterClass/Resources/bmc.db` (bundled default)
 
 **Step 1: Create Xcode project**
 
-Create a new SwiftUI iOS app project named "YuQiuPu" in the `ios/` directory. Add SQLite (via `libsqlite3` system library or GRDB.swift SPM package).
+Create a new SwiftUI iOS app project named "BadmintonMasterClass" in the `ios/` directory. Add SQLite (via `libsqlite3` system library or GRDB.swift SPM package).
 
 **Step 2: Write data models**
 
 ```swift
-// ios/YuQiuPu/Models.swift
+// ios/BadmintonMasterClass/Models.swift
 import Foundation
 
 struct Category: Identifiable {
@@ -784,7 +784,7 @@ struct ContentItem: Identifiable {
 **Step 3: Write database layer**
 
 ```swift
-// ios/YuQiuPu/Database.swift
+// ios/BadmintonMasterClass/Database.swift
 import Foundation
 import SQLite3
 
@@ -793,11 +793,11 @@ class Database {
 
     init() {
         let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let dbURL = docsURL.appendingPathComponent("yuqiupu.db")
+        let dbURL = docsURL.appendingPathComponent("bmc.db")
 
         // Copy bundled DB if no local copy exists
         if !FileManager.default.fileExists(atPath: dbURL.path) {
-            if let bundledURL = Bundle.main.url(forResource: "yuqiupu", withExtension: "db") {
+            if let bundledURL = Bundle.main.url(forResource: "bmc", withExtension: "db") {
                 try? FileManager.default.copyItem(at: bundledURL, to: dbURL)
             }
         }
@@ -861,7 +861,7 @@ class Database {
     func replaceWith(downloadedDBAt tempURL: URL) throws {
         sqlite3_close(db)
         let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let dbURL = docsURL.appendingPathComponent("yuqiupu.db")
+        let dbURL = docsURL.appendingPathComponent("bmc.db")
         try FileManager.default.removeItem(at: dbURL)
         try FileManager.default.moveItem(at: tempURL, to: dbURL)
         sqlite3_open(dbURL.path, &db)
@@ -881,14 +881,14 @@ git commit -m "feat: iOS project setup with bundled SQLite"
 ## Task 7: iOS App — UI Screens
 
 **Files:**
-- Create: `ios/YuQiuPu/Views/HomeView.swift`
-- Create: `ios/YuQiuPu/Views/CategoryView.swift`
-- Modify: `ios/YuQiuPu/App.swift`
+- Create: `ios/BadmintonMasterClass/Views/HomeView.swift`
+- Create: `ios/BadmintonMasterClass/Views/CategoryView.swift`
+- Modify: `ios/BadmintonMasterClass/App.swift`
 
 **Step 1: Home screen — category grid**
 
 ```swift
-// ios/YuQiuPu/Views/HomeView.swift
+// ios/BadmintonMasterClass/Views/HomeView.swift
 import SwiftUI
 
 struct HomeView: View {
@@ -915,7 +915,7 @@ struct HomeView: View {
 **Step 2: Category detail — content list**
 
 ```swift
-// ios/YuQiuPu/Views/CategoryView.swift
+// ios/BadmintonMasterClass/Views/CategoryView.swift
 import SwiftUI
 import SafariServices
 
@@ -990,11 +990,11 @@ struct SafariView: UIViewControllerRepresentable {
 **Step 3: Wire up App entry point**
 
 ```swift
-// ios/YuQiuPu/App.swift
+// ios/BadmintonMasterClass/App.swift
 import SwiftUI
 
 @main
-struct YuQiuPuApp: App {
+struct BMCApp: App {
     var body: some Scene {
         WindowGroup {
             HomeView()
@@ -1020,18 +1020,18 @@ git commit -m "feat: iOS home and category screens"
 ## Task 8: iOS App — Data Sync
 
 **Files:**
-- Create: `ios/YuQiuPu/DataSync.swift`
-- Modify: `ios/YuQiuPu/App.swift`
+- Create: `ios/BadmintonMasterClass/DataSync.swift`
+- Modify: `ios/BadmintonMasterClass/App.swift`
 
 **Step 1: Implement sync manager**
 
 ```swift
-// ios/YuQiuPu/DataSync.swift
+// ios/BadmintonMasterClass/DataSync.swift
 import Foundation
 
 class DataSync {
     // TODO: Replace with actual Aliyun OSS URL
-    static let dbURL = URL(string: "https://your-bucket.oss-cn-hangzhou.aliyuncs.com/yuqiupu.db")!
+    static let dbURL = URL(string: "https://your-bucket.oss-cn-hangzhou.aliyuncs.com/bmc.db")!
 
     static func syncIfNeeded(db: Database) {
         let task = URLSession.shared.downloadTask(with: dbURL) { tempURL, response, error in
@@ -1069,7 +1069,7 @@ Mirror Task 6 for Android:
 - Create: `android/app/src/main/java/.../models/Category.kt`
 - Create: `android/app/src/main/java/.../models/ContentItem.kt`
 - Create: `android/app/src/main/java/.../data/Database.kt`
-- Bundle: `android/app/src/main/assets/yuqiupu.db`
+- Bundle: `android/app/src/main/assets/bmc.db`
 
 Use Android's built-in SQLite via `SQLiteOpenHelper` or Room. Copy bundled DB from assets to internal storage on first launch. Same `replaceWith` pattern for sync.
 

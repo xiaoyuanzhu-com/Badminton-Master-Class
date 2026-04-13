@@ -1,7 +1,7 @@
 import Foundation
 
 enum DataSync {
-    private static let remoteURL = URL(string: "https://your-bucket.oss-cn-hangzhou.aliyuncs.com/yuqiupu.db")!
+    private static let remoteURL = URL(string: "https://your-bucket.oss-cn-hangzhou.aliyuncs.com/bmc.db")!
 
     /// Download the latest DB from the remote URL and replace the local copy.
     /// Failures are silently ignored — the app continues with local data.

@@ -1,4 +1,4 @@
-package com.yuqiupu.app.ui
+package com.bmc.app.ui
 
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
@@ -36,9 +36,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.yuqiupu.app.data.Database
-import com.yuqiupu.app.models.Category
-import com.yuqiupu.app.models.ContentItem
+import com.bmc.app.data.Database
+import com.bmc.app.models.Category
+import com.bmc.app.models.ContentItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
