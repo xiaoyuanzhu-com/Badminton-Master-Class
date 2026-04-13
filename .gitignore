@@ -1,2 +1,3 @@
 *.db
 !ios/YuQiuPu/Resources/yuqiupu.db
+!android/app/src/main/assets/yuqiupu.db
