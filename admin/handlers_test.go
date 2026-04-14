@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -611,5 +612,104 @@ func TestExportDB(t *testing.T) {
 	}
 	if w.Body.Len() == 0 {
 		t.Error("expected non-empty body")
+	}
+}
+
+func TestExportDB_WithoutOSSConfig(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	dbPath := "test_" + t.Name() + ".db"
+	defer cleanup()
+
+	// Ensure OSS env vars are not set
+	for _, key := range []string{"BMC_OSS_ENDPOINT", "BMC_OSS_BUCKET", "BMC_OSS_ACCESS_KEY_ID", "BMC_OSS_ACCESS_KEY_SECRET"} {
+		t.Setenv(key, "")
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/export", nil)
+	w := httptest.NewRecorder()
+	exportHandler(db, dbPath).ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	ct := w.Header().Get("Content-Type")
+	if ct != "application/x-sqlite3" {
+		t.Errorf("expected content-type application/x-sqlite3, got %s", ct)
+	}
+	if w.Body.Len() == 0 {
+		t.Error("expected non-empty body")
+	}
+}
+
+func TestExportDB_OSSUploadCalled(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	dbPath := "test_" + t.Name() + ".db"
+	defer cleanup()
+
+	// Set OSS env vars
+	t.Setenv("BMC_OSS_ENDPOINT", "oss-cn-hangzhou.aliyuncs.com")
+	t.Setenv("BMC_OSS_BUCKET", "test-bucket")
+	t.Setenv("BMC_OSS_ACCESS_KEY_ID", "test-key")
+	t.Setenv("BMC_OSS_ACCESS_KEY_SECRET", "test-secret")
+	t.Setenv("BMC_OSS_OBJECT_KEY", "test.db")
+
+	// Replace the upload function with a mock
+	called := false
+	originalUpload := uploadToOSS
+	uploadToOSS = func(cfg *ossConfig, filePath string) error {
+		called = true
+		if cfg.Endpoint != "oss-cn-hangzhou.aliyuncs.com" {
+			t.Errorf("expected endpoint oss-cn-hangzhou.aliyuncs.com, got %s", cfg.Endpoint)
+		}
+		if cfg.Bucket != "test-bucket" {
+			t.Errorf("expected bucket test-bucket, got %s", cfg.Bucket)
+		}
+		if cfg.ObjectKey != "test.db" {
+			t.Errorf("expected object key test.db, got %s", cfg.ObjectKey)
+		}
+		return nil
+	}
+	defer func() { uploadToOSS = originalUpload }()
+
+	req := httptest.NewRequest(http.MethodGet, "/export", nil)
+	w := httptest.NewRecorder()
+	exportHandler(db, dbPath).ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if !called {
+		t.Error("expected OSS upload to be called when configured")
+	}
+}
+
+func TestExportDB_OSSUploadFailure(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	dbPath := "test_" + t.Name() + ".db"
+	defer cleanup()
+
+	// Set OSS env vars
+	t.Setenv("BMC_OSS_ENDPOINT", "oss-cn-hangzhou.aliyuncs.com")
+	t.Setenv("BMC_OSS_BUCKET", "test-bucket")
+	t.Setenv("BMC_OSS_ACCESS_KEY_ID", "test-key")
+	t.Setenv("BMC_OSS_ACCESS_KEY_SECRET", "test-secret")
+
+	// Replace the upload function with one that fails
+	originalUpload := uploadToOSS
+	uploadToOSS = func(cfg *ossConfig, filePath string) error {
+		return fmt.Errorf("simulated OSS failure")
+	}
+	defer func() { uploadToOSS = originalUpload }()
+
+	req := httptest.NewRequest(http.MethodGet, "/export", nil)
+	w := httptest.NewRecorder()
+	exportHandler(db, dbPath).ServeHTTP(w, req)
+
+	// Download should still succeed even when OSS upload fails
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 even on OSS failure, got %d", w.Code)
+	}
+	if w.Body.Len() == 0 {
+		t.Error("expected non-empty body even on OSS failure")
 	}
 }

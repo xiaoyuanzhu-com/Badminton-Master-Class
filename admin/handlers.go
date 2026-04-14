@@ -504,6 +504,9 @@ func exportHandler(db *sql.DB, dbPath string) http.HandlerFunc {
 			return
 		}
 
+		// Upload to Aliyun OSS in the background (best-effort).
+		tryUploadToOSS(dbPath)
+
 		f, err := os.Open(dbPath)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
