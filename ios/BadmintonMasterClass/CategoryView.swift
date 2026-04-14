@@ -154,11 +154,11 @@ struct PlatformBadge: View {
 
     private var badgeColor: Color {
         switch platform {
-        case "bilibili": return .pink
-        case "xiaohongshu": return .red
-        case "douyin": return .black
-        case "wechat": return .green
-        case "youtube": return .red
+        case "bilibili": return Color(red: 0xFB/255.0, green: 0x72/255.0, blue: 0x99/255.0)   // #FB7299
+        case "xiaohongshu": return Color(red: 0xFF/255.0, green: 0x24/255.0, blue: 0x42/255.0) // #FF2442
+        case "douyin": return Color(red: 0x16/255.0, green: 0x18/255.0, blue: 0x23/255.0)      // #161823
+        case "wechat": return Color(red: 0x07/255.0, green: 0xC1/255.0, blue: 0x60/255.0)      // #07C160
+        case "youtube": return Color(red: 0xFF/255.0, green: 0x00/255.0, blue: 0x00/255.0)     // #FF0000
         default: return .gray
         }
     }
@@ -167,7 +167,7 @@ struct PlatformBadge: View {
         Text(displayName)
             .font(.caption2)
             .fontWeight(.medium)
-            .padding(.horizontal, 6)
+            .padding(.horizontal, 8)
             .padding(.vertical, 2)
             .background(badgeColor.opacity(0.15))
             .foregroundStyle(badgeColor)

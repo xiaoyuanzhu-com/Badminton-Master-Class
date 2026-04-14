@@ -129,7 +129,7 @@ private struct SyncStatusBar: View {
             case .failed:
                 Text("同步失败")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.red)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
                     .background(.ultraThinMaterial)
