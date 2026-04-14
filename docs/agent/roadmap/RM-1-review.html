@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>羽球大师课 — RM-1 里程碑回顾</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #242837;
+    --border: #2e3348;
+    --text: #e2e4ed;
+    --text-dim: #8b90a5;
+    --accent: #6c8cff;
+    --accent2: #a78bfa;
+    --green: #34d399;
+    --orange: #fb923c;
+    --red: #f87171;
+    --cyan: #22d3ee;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 60px 0 48px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 48px;
+  }
+  .header .badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 14px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+    letter-spacing: 0.5px;
+  }
+  .header h1 {
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+  .header .subtitle {
+    font-size: 18px;
+    color: var(--text-dim);
+  }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+  }
+  .stat-card .number {
+    font-size: 36px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .stat-card .label {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Section */
+  .section { margin-bottom: 48px; }
+  .section-title {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-title .icon { font-size: 28px; }
+
+  /* EPIC cards */
+  .epic-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .epic-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    transition: border-color 0.2s;
+  }
+  .epic-card:hover { border-color: var(--accent); }
+  .epic-card .epic-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .epic-card .epic-name {
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .epic-card .epic-count {
+    font-size: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 2px 10px;
+    border-radius: 12px;
+    color: var(--text-dim);
+  }
+  .epic-card ul {
+    list-style: none;
+    padding: 0;
+  }
+  .epic-card li {
+    padding: 4px 0;
+    font-size: 14px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .epic-card li::before {
+    content: "✓";
+    color: var(--green);
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* Chart containers */
+  .chart-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+  .chart-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .chart-box h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-dim);
+  }
+
+  /* Bug / finding cards */
+  .finding-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 12px;
+  }
+  .finding-card .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    margin-right: 8px;
+    text-transform: uppercase;
+  }
+  .tag-bug { background: rgba(248,113,113,0.15); color: var(--red); }
+  .tag-critical { background: rgba(248,113,113,0.15); color: var(--red); }
+  .tag-test { background: rgba(52,211,153,0.15); color: var(--green); }
+  .tag-warn { background: rgba(251,146,60,0.15); color: var(--orange); }
+  .tag-info { background: rgba(108,140,255,0.15); color: var(--accent); }
+  .finding-card p {
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+
+  /* RM-2 plan */
+  .priority-section { margin-bottom: 24px; }
+  .priority-label {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .priority-label .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .p0 .dot { background: var(--red); }
+  .p1 .dot { background: var(--orange); }
+  .p2 .dot { background: var(--accent); }
+  .p3 .dot { background: var(--text-dim); }
+
+  .rm2-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .rm2-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .rm2-card .rm2-name {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .rm2-card .rm2-tasks {
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  /* Test coverage */
+  .test-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .test-bar .bar-label {
+    width: 100px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .test-bar .bar-track {
+    flex: 1;
+    height: 28px;
+    background: var(--surface2);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+  }
+  .test-bar .bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    padding-left: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    min-width: fit-content;
+  }
+
+  /* Commit list */
+  .commit-list {
+    list-style: none;
+    padding: 0;
+  }
+  .commit-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .commit-list li:last-child { border-bottom: none; }
+  .commit-hash {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    background: rgba(108,140,255,0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .commit-msg { color: var(--text-dim); }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding-top: 48px;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  @media (max-width: 768px) {
+    .stats-row, .chart-row, .epic-grid, .rm2-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="badge">QUARTERLY BUSINESS REVIEW</div>
+    <h1>🏸 羽球大师课</h1>
+    <div class="subtitle">RM-1 里程碑回顾 — MVP 完成</div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="number">13</div>
+      <div class="label">提交次数</div>
+    </div>
+    <div class="stat-card">
+      <div class="number">27</div>
+      <div class="label">文件变更</div>
+    </div>
+    <div class="stat-card">
+      <div class="number">+2,317</div>
+      <div class="label">新增代码行</div>
+    </div>
+    <div class="stat-card">
+      <div class="number">5</div>
+      <div class="label">EPIC 完成</div>
+    </div>
+  </div>
+
+  <!-- Section 1: Features shipped -->
+  <div class="section">
+    <div class="section-title">
+      <span class="icon">📦</span> 已交付功能
+    </div>
+    <div class="epic-grid">
+      <div class="epic-card">
+        <div class="epic-header">
+          <span class="epic-name">🔧 ADMIN — 管理后台</span>
+          <span class="epic-count">4 项任务</span>
+        </div>
+        <ul>
+          <li>分类的编辑和删除功能</li>
+          <li>内容的编辑和删除功能</li>
+          <li>HTTP Basic Auth 鉴权</li>
+          <li>导出数据库上传至阿里云 OSS</li>
+        </ul>
+      </div>
+      <div class="epic-card">
+        <div class="epic-header">
+          <span class="epic-name">🔄 SYNC — 数据同步</span>
+          <span class="epic-count">3 项任务</span>
+        </div>
+        <ul>
+          <li>iOS / Android 配置 OSS 同步地址</li>
+          <li>iOS 同步状态指示器</li>
+          <li>Android 同步状态指示器</li>
+        </ul>
+      </div>
+      <div class="epic-card">
+        <div class="epic-header">
+          <span class="epic-name">✨ UX — 用户体验</span>
+          <span class="epic-count">5 项任务</span>
+        </div>
+        <ul>
+          <li>全局内容搜索（iOS + Android）</li>
+          <li>下拉刷新触发手动同步</li>
+          <li>列表视图内容缩略图</li>
+          <li>空状态提示页面</li>
+          <li>跨双平台一致实现</li>
+        </ul>
+      </div>
+      <div class="epic-card">
+        <div class="epic-header">
+          <span class="epic-name">📊 DATA + DX</span>
+          <span class="epic-count">3 项任务</span>
+        </div>
+        <ul>
+          <li>6 个分类 · 20 个子分类 · 20 个教程</li>
+          <li>管理端编辑/删除测试覆盖</li>
+          <li>数据库 Schema 迁移系统</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="chart-row">
+    <div class="chart-box">
+      <h3>📊 代码行数分布（按平台）</h3>
+      <canvas id="chartLines"></canvas>
+    </div>
+    <div class="chart-box">
+      <h3>📊 任务完成数（按 EPIC）</h3>
+      <canvas id="chartEpics"></canvas>
+    </div>
+  </div>
+
+  <!-- Test coverage -->
+  <div class="section">
+    <div class="section-title">
+      <span class="icon">🧪</span> 测试覆盖
+    </div>
+    <div class="finding-card">
+      <div class="test-bar">
+        <div class="bar-label">Go Admin</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width: 100%; background: linear-gradient(90deg, var(--green), #059669);">33 项测试 全部通过</div>
+        </div>
+      </div>
+      <div class="test-bar">
+        <div class="bar-label">iOS</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width: 6%; background: var(--red); padding-left: 4px;">0</div>
+        </div>
+      </div>
+      <div class="test-bar">
+        <div class="bar-label">Android</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width: 6%; background: var(--red); padding-left: 4px;">0</div>
+        </div>
+      </div>
+      <p style="margin-top: 14px;">
+        <span class="tag tag-warn">注意</span>
+        iOS 和 Android 端测试覆盖为零，已在技术审计中标记为 RM-2 优先项。
+      </p>
+    </div>
+  </div>
+
+  <!-- Bugs fixed -->
+  <div class="section">
+    <div class="section-title">
+      <span class="icon">🐛</span> 已修复缺陷
+    </div>
+    <div class="finding-card">
+      <span class="tag tag-bug">BUG</span>
+      <span class="tag tag-test">已修复</span>
+      <p>Android Compose BOM 版本与 PullToRefreshBox 不兼容 — 已更新 BOM 版本并验证通过。</p>
+    </div>
+    <div class="finding-card">
+      <span class="tag tag-bug">BUG</span>
+      <span class="tag tag-test">已修复</span>
+      <p>CategoryScreen.kt 中存在未使用的 import — 已清理。</p>
+    </div>
+  </div>
+
+  <!-- Key findings -->
+  <div class="section">
+    <div class="section-title">
+      <span class="icon">🔍</span> 关键发现
+    </div>
+
+    <div class="finding-card">
+      <span class="tag tag-critical">用户测试</span>
+      <p><strong>4 个关键问题：</strong>Android 返回键行为异常、Android 缩略图占位符、每次同步下载完整数据库、iOS 主线程数据库查询。另有 9 个重要问题待处理。</p>
+    </div>
+
+    <div class="finding-card">
+      <span class="tag tag-info">产品调研</span>
+      <p>BMC 需要<strong>个人状态记录 + 编辑精选内容 + 内容保鲜</strong>来留住用户。目前中文市场无竞品做到按技术维度的跨平台内容策展。</p>
+    </div>
+
+    <div class="finding-card">
+      <span class="tag tag-warn">技术审计</span>
+      <p><strong>5 项重大发现</strong> — 双数据库架构是用户功能的关键阻塞项。另有 12 项次要发现。</p>
+    </div>
+  </div>
+
+  <!-- Commit log -->
+  <div class="section">
+    <div class="section-title">
+      <span class="icon">📝</span> 提交记录
+    </div>
+    <div class="finding-card" style="padding: 16px 24px;">
+      <ol class="commit-list">
+        <li><span class="commit-hash">14981bf</span><span class="commit-msg">feat(admin): 分类编辑和删除</span></li>
+        <li><span class="commit-hash">e575a69</span><span class="commit-msg">feat(admin): 内容编辑和删除</span></li>
+        <li><span class="commit-hash">822cb6e</span><span class="commit-msg">feat: 管理后台 HTTP Basic Auth</span></li>
+        <li><span class="commit-hash">fbadd90</span><span class="commit-msg">feat: 导出时上传 DB 至阿里云 OSS</span></li>
+        <li><span class="commit-hash">97ed714</span><span class="commit-msg">feat: iOS/Android 配置 OSS 同步 URL</span></li>
+        <li><span class="commit-hash">f3ec03d</span><span class="commit-msg">feat: iOS/Android 同步状态指示器</span></li>
+        <li><span class="commit-hash">4f67952</span><span class="commit-msg">feat: iOS/Android 全局搜索</span></li>
+        <li><span class="commit-hash">fcff90e</span><span class="commit-msg">feat: iOS/Android 下拉刷新同步</span></li>
+        <li><span class="commit-hash">56f5995</span><span class="commit-msg">feat: 列表视图内容缩略图</span></li>
+        <li><span class="commit-hash">faba670</span><span class="commit-msg">feat: iOS/Android 空状态处理</span></li>
+        <li><span class="commit-hash">93a58be</span><span class="commit-msg">feat: 丰富种子数据（6分类·20子分类·20教程）</span></li>
+        <li><span class="commit-hash">90a6fb8</span><span class="commit-msg">feat: 管理后台 Schema 迁移支持</span></li>
+        <li><span class="commit-hash">96ea202</span><span class="commit-msg">fix: 更新 Android Compose BOM，清理 import</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- RM-2 Plan -->
+  <div class="section" style="margin-top: 64px;">
+    <div class="section-title">
+      <span class="icon">🗺️</span> RM-2 路线图规划
+    </div>
+    <p style="color: var(--text-dim); margin-bottom: 24px; font-size: 15px;">
+      共 <strong style="color: var(--text);">47 项任务</strong>，横跨 <strong style="color: var(--text);">10 个 EPIC</strong>，聚焦平台稳定性与架构演进。
+    </p>
+
+    <div class="priority-section">
+      <div class="priority-label p0"><span class="dot"></span> P0 — 必须完成</div>
+      <div class="rm2-grid">
+        <div class="rm2-card">
+          <div class="rm2-name">🛡️ 平台稳定性</div>
+          <div class="rm2-tasks">4 项任务 — 修复用户测试中发现的关键缺陷</div>
+        </div>
+        <div class="rm2-card">
+          <div class="rm2-name">⚡ 智能同步</div>
+          <div class="rm2-tasks">4 项任务 — 增量同步替代全量下载</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="priority-section">
+      <div class="priority-label p1"><span class="dot"></span> P1 — 应该完成</div>
+      <div class="rm2-grid">
+        <div class="rm2-card">
+          <div class="rm2-name">🏗️ 双数据库架构</div>
+          <div class="rm2-tasks">6 项任务 — 解除用户功能的关键阻塞</div>
+        </div>
+        <div class="rm2-card">
+          <div class="rm2-name">📐 Schema 演进</div>
+          <div class="rm2-tasks">6 项任务 — 支持数据模型平滑升级</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="priority-section">
+      <div class="priority-label p2"><span class="dot"></span> P2 — 可以完成</div>
+      <div class="rm2-grid">
+        <div class="rm2-card">
+          <div class="rm2-name">❤️ 收藏功能</div>
+          <div class="rm2-tasks">5 项任务</div>
+        </div>
+        <div class="rm2-card">
+          <div class="rm2-name">🔎 增强搜索</div>
+          <div class="rm2-tasks">4 项任务</div>
+        </div>
+        <div class="rm2-card" style="grid-column: span 2;">
+          <div class="rm2-name">🎨 内容展示优化</div>
+          <div class="rm2-tasks">5 项任务</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="priority-section">
+      <div class="priority-label p3"><span class="dot"></span> P3 — 锦上添花</div>
+      <div class="rm2-grid">
+        <div class="rm2-card">
+          <div class="rm2-name">📖 观看历史</div>
+          <div class="rm2-tasks">5 项任务</div>
+        </div>
+        <div class="rm2-card">
+          <div class="rm2-name">🎯 难度分级</div>
+          <div class="rm2-tasks">4 项任务</div>
+        </div>
+        <div class="rm2-card" style="grid-column: span 2;">
+          <div class="rm2-name">⚙️ 管理后台改进</div>
+          <div class="rm2-tasks">4 项任务</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>羽球大师课 (Badminton Master Class) — RM-1 Executive Review</p>
+    <p style="margin-top: 4px;">生成于 2026-04-14</p>
+  </div>
+
+</div>
+
+<script>
+const fontColor = '#8b90a5';
+const gridColor = '#2e3348';
+
+Chart.defaults.color = fontColor;
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif";
+
+// Lines of code by platform (estimated breakdown of +2317 lines)
+new Chart(document.getElementById('chartLines'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Go Admin', 'iOS (Swift)', 'Android (Kotlin)', '种子数据 & 配置'],
+    datasets: [{
+      data: [680, 590, 720, 327],
+      backgroundColor: ['#6c8cff', '#a78bfa', '#22d3ee', '#34d399'],
+      borderWidth: 0,
+      hoverOffset: 8
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { padding: 16, usePointStyle: true, pointStyleWidth: 10, font: { size: 13 } }
+      },
+      tooltip: {
+        callbacks: {
+          label: ctx => `${ctx.label}: ~${ctx.raw} 行`
+        }
+      }
+    }
+  }
+});
+
+// Tasks by EPIC
+new Chart(document.getElementById('chartEpics'), {
+  type: 'bar',
+  data: {
+    labels: ['ADMIN', 'SYNC', 'UX', 'DATA', 'DX'],
+    datasets: [{
+      label: '完成任务数',
+      data: [4, 3, 5, 1, 2],
+      backgroundColor: ['#6c8cff', '#22d3ee', '#a78bfa', '#34d399', '#fb923c'],
+      borderRadius: 6,
+      borderSkipped: false,
+      barThickness: 40
+    }]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      x: { grid: { display: false }, border: { color: gridColor } },
+      y: {
+        beginAtZero: true,
+        max: 6,
+        ticks: { stepSize: 1 },
+        grid: { color: gridColor },
+        border: { color: gridColor }
+      }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => `${ctx.raw} 项任务`
+        }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>
