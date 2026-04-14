@@ -39,6 +39,7 @@ func main() {
 	http.HandleFunc("/categories", categoriesHandler(db))
 	http.HandleFunc("/categories/", categoryActionHandler(db))
 	http.HandleFunc("/contents", contentsHandler(db))
+	http.HandleFunc("/contents/", contentActionHandler(db))
 	http.HandleFunc("/export", exportHandler(db, dbPath))
 
 	fmt.Println("羽球大师课 Admin panel running on :8080")

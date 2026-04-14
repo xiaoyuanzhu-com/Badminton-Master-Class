@@ -202,6 +202,140 @@ func contentsHandler(db *sql.DB) http.HandlerFunc {
 	}
 }
 
+// contentActionHandler routes /contents/{id}/edit and /contents/{id}/delete.
+func contentActionHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/contents/")
+		parts := strings.SplitN(path, "/", 2)
+		if len(parts) != 2 {
+			http.NotFound(w, r)
+			return
+		}
+
+		id, err := strconv.Atoi(parts[0])
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+
+		switch parts[1] {
+		case "edit":
+			contentEditHandler(db, id, w, r)
+		case "delete":
+			contentDeleteHandler(db, id, w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	}
+}
+
+func contentEditHandler(db *sql.DB, id int, w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		var ct Content
+		err := db.QueryRow(`SELECT id, title, summary, thumbnail_url, source_url,
+			source_platform, author_name, category_id, sort_order
+			FROM contents WHERE id = ?`, id).
+			Scan(&ct.ID, &ct.Title, &ct.Summary, &ct.ThumbnailURL,
+				&ct.SourceURL, &ct.SourcePlatform, &ct.AuthorName,
+				&ct.CategoryID, &ct.SortOrder)
+		if err == sql.ErrNoRows {
+			http.NotFound(w, r)
+			return
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Load categories for dropdown
+		rows, err := db.Query("SELECT id, name FROM categories ORDER BY sort_order")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		var cats []Category
+		for rows.Next() {
+			var c Category
+			if err := rows.Scan(&c.ID, &c.Name); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			cats = append(cats, c)
+		}
+
+		data := struct {
+			Content    Content
+			Categories []Category
+		}{ct, cats}
+
+		tmpl, err := template.ParseFiles("templates/content_edit.html")
+		if err != nil {
+			// Fallback: plain text for testing
+			w.Header().Set("Content-Type", "text/plain")
+			fmt.Fprintf(w, "Edit Content: %s (id=%d, platform=%s, sort=%d)", ct.Title, ct.ID, ct.SourcePlatform, ct.SortOrder)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		tmpl.Execute(w, data)
+
+	case http.MethodPost:
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		title := r.FormValue("title")
+		summary := r.FormValue("summary")
+		thumbnailURL := r.FormValue("thumbnail_url")
+		sourceURL := r.FormValue("source_url")
+		sourcePlatform := r.FormValue("source_platform")
+		authorName := r.FormValue("author_name")
+		categoryID, _ := strconv.Atoi(r.FormValue("category_id"))
+		sortOrder, _ := strconv.Atoi(r.FormValue("sort_order"))
+
+		result, err := db.Exec(
+			`UPDATE contents SET title = ?, summary = ?, thumbnail_url = ?, source_url = ?,
+			 source_platform = ?, author_name = ?, category_id = ?, sort_order = ?,
+			 updated_at = datetime('now') WHERE id = ?`,
+			title, summary, thumbnailURL, sourceURL, sourcePlatform, authorName, categoryID, sortOrder, id,
+		)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		rows, _ := result.RowsAffected()
+		if rows == 0 {
+			http.NotFound(w, r)
+			return
+		}
+		http.Redirect(w, r, "/contents", http.StatusSeeOther)
+
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func contentDeleteHandler(db *sql.DB, id int, w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	result, err := db.Exec("DELETE FROM contents WHERE id = ?", id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		http.NotFound(w, r)
+		return
+	}
+	http.Redirect(w, r, "/contents", http.StatusSeeOther)
+}
+
 // categoryActionHandler routes /categories/{id}/edit and /categories/{id}/delete.
 func categoryActionHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

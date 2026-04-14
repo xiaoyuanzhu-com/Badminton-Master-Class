@@ -36,6 +36,7 @@
                 <th>Author</th>
                 <th>Category</th>
                 <th>Sort</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -48,6 +49,12 @@
                 <td>{{.AuthorName}}</td>
                 <td>{{.CategoryName}}</td>
                 <td>{{.SortOrder}}</td>
+                <td>
+                    <a href="/contents/{{.ID}}/edit">Edit</a>
+                    <form method="POST" action="/contents/{{.ID}}/delete" style="display:inline" onsubmit="return confirm('Delete this content?')">
+                        <button type="submit" style="margin:0;padding:2px 8px;">Delete</button>
+                    </form>
+                </td>
             </tr>
             {{end}}
         </tbody>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>羽球大师课 - Edit Content</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        nav { margin-bottom: 20px; }
+        nav a { margin-right: 15px; }
+        label { display: block; margin-top: 10px; }
+        input, select { padding: 5px; margin-top: 3px; }
+        button { margin-top: 15px; padding: 8px 16px; }
+        .cancel { margin-left: 10px; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/categories">Categories</a>
+        <a href="/contents">Contents</a>
+        <a href="/export">Export</a>
+    </nav>
+
+    <h1>Edit Content</h1>
+
+    <form method="POST" action="/contents/{{.Content.ID}}/edit">
+        <label>Title: <input type="text" name="title" value="{{.Content.Title}}" required></label>
+        <label>Summary: <input type="text" name="summary" value="{{.Content.Summary}}"></label>
+        <label>Thumbnail URL: <input type="url" name="thumbnail_url" value="{{.Content.ThumbnailURL}}"></label>
+        <label>Source URL: <input type="url" name="source_url" value="{{.Content.SourceURL}}" required></label>
+        <label>Platform:
+            <select name="source_platform" required>
+                <option value="bilibili" {{if eq .Content.SourcePlatform "bilibili"}}selected{{end}}>Bilibili</option>
+                <option value="xiaohongshu" {{if eq .Content.SourcePlatform "xiaohongshu"}}selected{{end}}>Xiaohongshu</option>
+                <option value="douyin" {{if eq .Content.SourcePlatform "douyin"}}selected{{end}}>Douyin</option>
+                <option value="wechat" {{if eq .Content.SourcePlatform "wechat"}}selected{{end}}>WeChat</option>
+                <option value="youtube" {{if eq .Content.SourcePlatform "youtube"}}selected{{end}}>YouTube</option>
+                <option value="other" {{if eq .Content.SourcePlatform "other"}}selected{{end}}>Other</option>
+            </select>
+        </label>
+        <label>Author: <input type="text" name="author_name" value="{{.Content.AuthorName}}"></label>
+        <label>Category:
+            <select name="category_id" required>
+                {{range .Categories}}
+                <option value="{{.ID}}" {{if eq $.Content.CategoryID .ID}}selected{{end}}>{{.Name}}</option>
+                {{end}}
+            </select>
+        </label>
+        <label>Sort Order: <input type="number" name="sort_order" value="{{.Content.SortOrder}}"></label>
+        <button type="submit">Save</button>
+        <a class="cancel" href="/contents">Cancel</a>
+    </form>
+</body>
+</html>
