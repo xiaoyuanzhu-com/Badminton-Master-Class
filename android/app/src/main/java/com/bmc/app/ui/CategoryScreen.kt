@@ -1,7 +1,5 @@
 package com.bmc.app.ui
 
-import android.net.Uri
-import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -47,6 +45,7 @@ import coil.compose.AsyncImage
 import com.bmc.app.data.Database
 import com.bmc.app.models.Category
 import com.bmc.app.models.ContentItem
+import com.bmc.app.util.DeepLink
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -126,8 +125,7 @@ fun CategoryScreen(
                     ContentRow(
                         item = item,
                         onClick = {
-                            val intent = CustomTabsIntent.Builder().build()
-                            intent.launchUrl(context, Uri.parse(item.sourceUrl))
+                            DeepLink.open(context, item.sourceUrl, item.sourcePlatform)
                         }
                     )
                     HorizontalDivider()

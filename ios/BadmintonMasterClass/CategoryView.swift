@@ -29,7 +29,7 @@ struct CategoryView: View {
                 Section("内容") {
                     ForEach(contents) { item in
                         Button {
-                            if let url = URL(string: item.sourceUrl) {
+                            DeepLink.open(sourceUrl: item.sourceUrl, sourcePlatform: item.sourcePlatform) { url in
                                 selectedURL = url
                             }
                         } label: {

@@ -84,7 +84,7 @@ struct HomeView: View {
             } else {
                 List(searchResults) { item in
                     Button {
-                        if let url = URL(string: item.sourceUrl) {
+                        DeepLink.open(sourceUrl: item.sourceUrl, sourcePlatform: item.sourcePlatform) { url in
                             selectedURL = url
                         }
                     } label: {

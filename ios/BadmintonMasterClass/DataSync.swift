@@ -28,92 +28,84 @@ enum SyncConfig {
     }
 }
 
+// MARK: - ETag Storage
+
+private enum ETagStore {
+    private static let key = "bmc_sync_etag"
+
+    static var lastETag: String? {
+        get { UserDefaults.standard.string(forKey: key) }
+        set { UserDefaults.standard.set(newValue, forKey: key) }
+    }
+}
+
+// MARK: - DataSync
+
 enum DataSync {
     private static var remoteURL: URL { SyncConfig.remoteURL }
 
-    /// Async version of syncIfNeeded for use with pull-to-refresh.
-    /// Returns when the download completes (or fails).
+    /// Async entry point for pull-to-refresh.
     static func syncDatabase() async {
-        await withCheckedContinuation { continuation in
-            Task { @MainActor in
-                SyncManager.shared.setSyncing()
-            }
-
-            let task = URLSession.shared.downloadTask(with: remoteURL) { tempURL, response, error in
-                guard let tempURL = tempURL, error == nil else {
-                    print("[DataSync] Download failed: \(error?.localizedDescription ?? "unknown error")")
-                    Task { @MainActor in SyncManager.shared.setFailed() }
-                    continuation.resume()
-                    return
-                }
-
-                if let httpResponse = response as? HTTPURLResponse,
-                   !(200...299).contains(httpResponse.statusCode) {
-                    print("[DataSync] Server returned status \(httpResponse.statusCode)")
-                    Task { @MainActor in SyncManager.shared.setFailed() }
-                    continuation.resume()
-                    return
-                }
-
-                let stableTemp = FileManager.default.temporaryDirectory
-                    .appendingPathComponent(UUID().uuidString + ".db")
-                do {
-                    try FileManager.default.moveItem(at: tempURL, to: stableTemp)
-                } catch {
-                    print("[DataSync] Failed to stage downloaded file: \(error)")
-                    Task { @MainActor in SyncManager.shared.setFailed() }
-                    continuation.resume()
-                    return
-                }
-
-                DispatchQueue.main.async {
-                    Database.shared.replaceWith(downloadedDBAt: stableTemp)
-                    SyncManager.shared.setSuccess()
-                    continuation.resume()
-                }
-            }
-            task.resume()
-        }
+        await performSync()
     }
 
-    /// Download the latest DB from the remote URL and replace the local copy.
-    /// Reports progress via SyncManager. Failures are non-fatal — the app continues with local data.
+    /// Fire-and-forget entry point (e.g. app launch).
     static func syncIfNeeded() {
-        Task { @MainActor in
-            SyncManager.shared.setSyncing()
-        }
+        Task { await performSync() }
+    }
 
-        let task = URLSession.shared.downloadTask(with: remoteURL) { tempURL, response, error in
-            guard let tempURL = tempURL, error == nil else {
-                print("[DataSync] Download failed: \(error?.localizedDescription ?? "unknown error")")
-                Task { @MainActor in SyncManager.shared.setFailed() }
+    // MARK: - Core sync logic (single implementation)
+
+    private static func performSync() async {
+        await MainActor.run { SyncManager.shared.setSyncing() }
+
+        do {
+            var request = URLRequest(url: remoteURL)
+            request.timeoutInterval = 30
+
+            // Conditional fetch: send stored ETag so the server can return 304
+            if let etag = ETagStore.lastETag {
+                request.setValue(etag, forHTTPHeaderField: "If-None-Match")
+            }
+
+            let (tempURL, response) = try await URLSession.shared.download(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                print("[DataSync] Invalid response type")
+                await MainActor.run { SyncManager.shared.setFailed() }
                 return
             }
 
-            // Verify we got a successful HTTP response
-            if let httpResponse = response as? HTTPURLResponse,
-               !(200...299).contains(httpResponse.statusCode) {
-                print("[DataSync] Server returned status \(httpResponse.statusCode)")
-                Task { @MainActor in SyncManager.shared.setFailed() }
+            // 304 Not Modified — local data is already up-to-date
+            if httpResponse.statusCode == 304 {
+                print("[DataSync] 304 Not Modified — skipping download")
+                await MainActor.run { SyncManager.shared.setSuccess() }
                 return
+            }
+
+            guard (200...299).contains(httpResponse.statusCode) else {
+                print("[DataSync] Server returned status \(httpResponse.statusCode)")
+                await MainActor.run { SyncManager.shared.setFailed() }
+                return
+            }
+
+            // Save the new ETag for next request
+            if let newETag = httpResponse.value(forHTTPHeaderField: "ETag") {
+                ETagStore.lastETag = newETag
             }
 
             // Move to a stable temporary location (the download temp file may be deleted)
             let stableTemp = FileManager.default.temporaryDirectory
                 .appendingPathComponent(UUID().uuidString + ".db")
-            do {
-                try FileManager.default.moveItem(at: tempURL, to: stableTemp)
-            } catch {
-                print("[DataSync] Failed to stage downloaded file: \(error)")
-                Task { @MainActor in SyncManager.shared.setFailed() }
-                return
-            }
+            try FileManager.default.moveItem(at: tempURL, to: stableTemp)
 
-            DispatchQueue.main.async {
+            await MainActor.run {
                 Database.shared.replaceWith(downloadedDBAt: stableTemp)
                 SyncManager.shared.setSuccess()
             }
+        } catch {
+            print("[DataSync] Download failed: \(error.localizedDescription)")
+            await MainActor.run { SyncManager.shared.setFailed() }
         }
-        task.resume()
     }
 }

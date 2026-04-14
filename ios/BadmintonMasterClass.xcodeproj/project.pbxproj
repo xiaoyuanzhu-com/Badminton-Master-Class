@@ -15,6 +15,7 @@
 		00000000000000000000000C /* SafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000000B /* SafariView.swift */; };
 		00000000000000000000000E /* DataSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000000D /* DataSync.swift */; };
 		000000000000000000000010 /* bmc.db in Resources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000000F /* bmc.db */; };
+		000000000000000000000022 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000021 /* DeepLink.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +28,7 @@
 		00000000000000000000000D /* DataSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DataSync.swift"; sourceTree = "<group>"; };
 		00000000000000000000000F /* bmc.db */ = {isa = PBXFileReference; lastKnownFileType = file; path = "bmc.db"; sourceTree = "<group>"; };
 		000000000000000000000015 /* BadmintonMasterClass.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "BadmintonMasterClass.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		000000000000000000000021 /* DeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DeepLink.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +60,7 @@
 				000000000000000000000009 /* CategoryView.swift */,
 				00000000000000000000000B /* SafariView.swift */,
 				00000000000000000000000D /* DataSync.swift */,
+				000000000000000000000021 /* DeepLink.swift */,
 				000000000000000000000011 /* Resources */,
 			);
 			path = BadmintonMasterClass;
@@ -150,6 +153,7 @@
 				00000000000000000000000A /* CategoryView.swift in Sources */,
 				00000000000000000000000C /* SafariView.swift in Sources */,
 				00000000000000000000000E /* DataSync.swift in Sources */,
+				000000000000000000000022 /* DeepLink.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

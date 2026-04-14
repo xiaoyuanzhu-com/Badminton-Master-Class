@@ -1,7 +1,5 @@
 package com.bmc.app.ui
 
-import android.net.Uri
-import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -49,6 +47,7 @@ import com.bmc.app.data.Database
 import com.bmc.app.data.SyncState
 import com.bmc.app.models.Category
 import com.bmc.app.models.ContentItem
+import com.bmc.app.util.DeepLink
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -147,8 +146,7 @@ fun HomeScreen(
                             ContentRow(
                                 item = item,
                                 onClick = {
-                                    val intent = CustomTabsIntent.Builder().build()
-                                    intent.launchUrl(context, Uri.parse(item.sourceUrl))
+                                    DeepLink.open(context, item.sourceUrl, item.sourcePlatform)
                                 }
                             )
                             HorizontalDivider()

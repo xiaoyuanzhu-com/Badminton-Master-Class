@@ -46,6 +46,26 @@ object SyncConfig {
     val remoteUrl: String get() = "https://$bucket.$endpoint/bmc.db"
 }
 
+// ---------------------------------------------------------------------------
+// ETag storage — persisted in SharedPreferences
+// ---------------------------------------------------------------------------
+
+private object ETagStore {
+    private const val PREFS_NAME = "bmc_sync"
+    private const val KEY_ETAG = "etag"
+
+    fun getETag(context: Context): String? =
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_ETAG, null)
+
+    fun setETag(context: Context, etag: String?) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_ETAG, etag)
+            .apply()
+    }
+}
+
 object DataSync {
 
     private val _state = MutableStateFlow<SyncState>(SyncState.Idle)
@@ -60,6 +80,7 @@ object DataSync {
 
     /**
      * Download the latest DB from the remote URL and replace the local copy.
+     * Sends `If-None-Match` with the stored ETag; handles 304 Not Modified.
      * Updates [state] so the UI can show progress. Failures are non-fatal —
      * the app continues with local data.
      */
@@ -72,10 +93,30 @@ object DataSync {
                 connection.connectTimeout = 10_000
                 connection.readTimeout = 30_000
 
+                // Conditional fetch: send stored ETag
+                val storedETag = ETagStore.getETag(context)
+                if (storedETag != null) {
+                    connection.setRequestProperty("If-None-Match", storedETag)
+                }
+
                 try {
-                    if (connection.responseCode !in 200..299) {
+                    val responseCode = connection.responseCode
+
+                    // 304 Not Modified — local data is already up-to-date
+                    if (responseCode == 304) {
+                        _state.value = SyncState.Success
+                        return@withContext
+                    }
+
+                    if (responseCode !in 200..299) {
                         _state.value = SyncState.Failed
                         return@withContext
+                    }
+
+                    // Save the new ETag for next request
+                    val newETag = connection.getHeaderField("ETag")
+                    if (newETag != null) {
+                        ETagStore.setETag(context, newETag)
                     }
 
                     val tempFile = File(context.cacheDir, "bmc_download.db")
