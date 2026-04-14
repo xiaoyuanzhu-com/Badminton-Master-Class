@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Category struct {
@@ -199,6 +200,167 @@ func contentsHandler(db *sql.DB) http.HandlerFunc {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
 	}
+}
+
+// categoryActionHandler routes /categories/{id}/edit and /categories/{id}/delete.
+func categoryActionHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Parse path: /categories/{id}/edit or /categories/{id}/delete
+		path := strings.TrimPrefix(r.URL.Path, "/categories/")
+		parts := strings.SplitN(path, "/", 2)
+		if len(parts) != 2 {
+			http.NotFound(w, r)
+			return
+		}
+
+		id, err := strconv.Atoi(parts[0])
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+
+		switch parts[1] {
+		case "edit":
+			categoryEditHandler(db, id, w, r)
+		case "delete":
+			categoryDeleteHandler(db, id, w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	}
+}
+
+func categoryEditHandler(db *sql.DB, id int, w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		var c Category
+		err := db.QueryRow("SELECT id, name, icon, sort_order, parent_id FROM categories WHERE id = ?", id).
+			Scan(&c.ID, &c.Name, &c.Icon, &c.SortOrder, &c.ParentID)
+		if err == sql.ErrNoRows {
+			http.NotFound(w, r)
+			return
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Load all categories for parent dropdown (exclude self)
+		rows, err := db.Query("SELECT id, name FROM categories WHERE id != ? ORDER BY sort_order", id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		var cats []Category
+		for rows.Next() {
+			var cat Category
+			if err := rows.Scan(&cat.ID, &cat.Name); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			cats = append(cats, cat)
+		}
+
+		parentIDValue := 0
+		if c.ParentID.Valid {
+			parentIDValue = int(c.ParentID.Int64)
+		}
+
+		data := struct {
+			Category      Category
+			Categories    []Category
+			ParentIDValue int
+		}{c, cats, parentIDValue}
+
+		tmpl, err := template.ParseFiles("templates/category_edit.html")
+		if err != nil {
+			// Fallback: plain text for testing
+			w.Header().Set("Content-Type", "text/plain")
+			fmt.Fprintf(w, "Edit Category: %s (id=%d, icon=%s, sort=%d)", c.Name, c.ID, c.Icon, c.SortOrder)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		tmpl.Execute(w, data)
+
+	case http.MethodPost:
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		name := r.FormValue("name")
+		icon := r.FormValue("icon")
+		sortOrder, _ := strconv.Atoi(r.FormValue("sort_order"))
+		parentIDStr := r.FormValue("parent_id")
+
+		var parentID sql.NullInt64
+		if parentIDStr != "" {
+			pid, err := strconv.ParseInt(parentIDStr, 10, 64)
+			if err == nil {
+				parentID = sql.NullInt64{Int64: pid, Valid: true}
+			}
+		}
+
+		result, err := db.Exec(
+			"UPDATE categories SET name = ?, icon = ?, sort_order = ?, parent_id = ? WHERE id = ?",
+			name, icon, sortOrder, parentID, id,
+		)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		rows, _ := result.RowsAffected()
+		if rows == 0 {
+			http.NotFound(w, r)
+			return
+		}
+		http.Redirect(w, r, "/categories", http.StatusSeeOther)
+
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func categoryDeleteHandler(db *sql.DB, id int, w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check for child categories
+	var childCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM categories WHERE parent_id = ?", id).Scan(&childCount); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if childCount > 0 {
+		http.Error(w, "Cannot delete category: it has child categories. Remove or reassign them first.", http.StatusConflict)
+		return
+	}
+
+	// Check for associated contents
+	var contentCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM contents WHERE category_id = ?", id).Scan(&contentCount); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if contentCount > 0 {
+		http.Error(w, "Cannot delete category: it has associated content. Remove or reassign the content first.", http.StatusConflict)
+		return
+	}
+
+	result, err := db.Exec("DELETE FROM categories WHERE id = ?", id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		http.NotFound(w, r)
+		return
+	}
+	http.Redirect(w, r, "/categories", http.StatusSeeOther)
 }
 
 func exportHandler(db *sql.DB, dbPath string) http.HandlerFunc {

@@ -34,6 +34,7 @@
                 <th>Icon</th>
                 <th>Sort Order</th>
                 <th>Parent ID</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -44,6 +45,12 @@
                 <td>{{.Icon}}</td>
                 <td>{{.SortOrder}}</td>
                 <td>{{if .ParentID.Valid}}{{.ParentID.Int64}}{{else}}-{{end}}</td>
+                <td>
+                    <a href="/categories/{{.ID}}/edit">Edit</a>
+                    <form method="POST" action="/categories/{{.ID}}/delete" style="display:inline" onsubmit="return confirm('Delete this category?')">
+                        <button type="submit" style="margin:0;padding:2px 8px;color:red;background:none;border:1px solid red;cursor:pointer;">Delete</button>
+                    </form>
+                </td>
             </tr>
             {{end}}
         </tbody>

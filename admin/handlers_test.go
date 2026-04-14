@@ -136,6 +136,217 @@ func TestCreateContent(t *testing.T) {
 	}
 }
 
+func TestEditCategoryGET(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	_, err := db.Exec("INSERT INTO categories (id, name, icon, sort_order) VALUES (1, 'Basics', '🏸', 1)")
+	if err != nil {
+		t.Fatalf("insert category: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/categories/1/edit", nil)
+	w := httptest.NewRecorder()
+	categoryActionHandler(db).ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "Basics") {
+		t.Errorf("response should contain 'Basics', got: %s", body)
+	}
+}
+
+func TestEditCategoryGET_NotFound(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodGet, "/categories/999/edit", nil)
+	w := httptest.NewRecorder()
+	categoryActionHandler(db).ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+}
+
+func TestEditCategoryPOST(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	_, err := db.Exec("INSERT INTO categories (id, name, icon, sort_order) VALUES (1, 'Basics', '🏸', 1)")
+	if err != nil {
+		t.Fatalf("insert category: %v", err)
+	}
+
+	form := url.Values{}
+	form.Set("name", "Advanced")
+	form.Set("icon", "🎯")
+	form.Set("sort_order", "5")
+
+	req := httptest.NewRequest(http.MethodPost, "/categories/1/edit", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+	categoryActionHandler(db).ServeHTTP(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var name, icon string
+	var sortOrder int
+	err = db.QueryRow("SELECT name, icon, sort_order FROM categories WHERE id = 1").Scan(&name, &icon, &sortOrder)
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if name != "Advanced" {
+		t.Errorf("expected name 'Advanced', got '%s'", name)
+	}
+	if icon != "🎯" {
+		t.Errorf("expected icon '🎯', got '%s'", icon)
+	}
+	if sortOrder != 5 {
+		t.Errorf("expected sort_order 5, got %d", sortOrder)
+	}
+}
+
+func TestEditCategoryPOST_NotFound(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	form := url.Values{}
+	form.Set("name", "Ghost")
+	form.Set("icon", "👻")
+	form.Set("sort_order", "1")
+
+	req := httptest.NewRequest(http.MethodPost, "/categories/999/edit", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+	categoryActionHandler(db).ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+}
+
+func TestDeleteCategory(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	_, err := db.Exec("INSERT INTO categories (id, name, icon, sort_order) VALUES (1, 'Basics', '🏸', 1)")
+	if err != nil {
+		t.Fatalf("insert category: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/categories/1/delete", nil)
+	w := httptest.NewRecorder()
+	categoryActionHandler(db).ServeHTTP(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var count int
+	err = db.QueryRow("SELECT COUNT(*) FROM categories WHERE id = 1").Scan(&count)
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("expected 0 rows, got %d", count)
+	}
+}
+
+func TestDeleteCategory_NotFound(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodPost, "/categories/999/delete", nil)
+	w := httptest.NewRecorder()
+	categoryActionHandler(db).ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+}
+
+func TestDeleteCategory_WithChildren(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	_, err := db.Exec("INSERT INTO categories (id, name, icon, sort_order) VALUES (1, 'Parent', '📁', 1)")
+	if err != nil {
+		t.Fatalf("insert parent: %v", err)
+	}
+	_, err = db.Exec("INSERT INTO categories (id, name, icon, sort_order, parent_id) VALUES (2, 'Child', '📄', 2, 1)")
+	if err != nil {
+		t.Fatalf("insert child: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/categories/1/delete", nil)
+	w := httptest.NewRecorder()
+	categoryActionHandler(db).ServeHTTP(w, req)
+
+	if w.Code != http.StatusConflict {
+		t.Fatalf("expected 409 Conflict, got %d: %s", w.Code, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "child categories") {
+		t.Errorf("expected error about child categories, got: %s", w.Body.String())
+	}
+}
+
+func TestDeleteCategory_WithContent(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	_, err := db.Exec("INSERT INTO categories (id, name, icon, sort_order) VALUES (1, 'Basics', '🏸', 1)")
+	if err != nil {
+		t.Fatalf("insert category: %v", err)
+	}
+	_, err = db.Exec(`INSERT INTO contents (title, summary, source_url, source_platform, author_name, category_id, sort_order)
+		VALUES ('Video', 'A video', 'https://example.com/1', 'bilibili', 'Coach', 1, 1)`)
+	if err != nil {
+		t.Fatalf("insert content: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/categories/1/delete", nil)
+	w := httptest.NewRecorder()
+	categoryActionHandler(db).ServeHTTP(w, req)
+
+	if w.Code != http.StatusConflict {
+		t.Fatalf("expected 409 Conflict, got %d: %s", w.Code, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "associated content") {
+		t.Errorf("expected error about associated content, got: %s", w.Body.String())
+	}
+}
+
+func TestDeleteCategory_MethodNotAllowed(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodGet, "/categories/1/delete", nil)
+	w := httptest.NewRecorder()
+	categoryActionHandler(db).ServeHTTP(w, req)
+
+	if w.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("expected 405, got %d", w.Code)
+	}
+}
+
+func TestCategoryActionHandler_InvalidPath(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodGet, "/categories/notanumber/edit", nil)
+	w := httptest.NewRecorder()
+	categoryActionHandler(db).ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+}
+
 func TestExportDB(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	dbPath := "test_" + t.Name() + ".db"

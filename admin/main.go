@@ -37,6 +37,7 @@ func main() {
 		http.Redirect(w, r, "/categories", http.StatusSeeOther)
 	})
 	http.HandleFunc("/categories", categoriesHandler(db))
+	http.HandleFunc("/categories/", categoryActionHandler(db))
 	http.HandleFunc("/contents", contentsHandler(db))
 	http.HandleFunc("/export", exportHandler(db, dbPath))
 
