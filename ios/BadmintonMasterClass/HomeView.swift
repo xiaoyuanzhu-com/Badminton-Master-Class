@@ -53,6 +53,10 @@ struct HomeView: View {
                 .padding(.vertical, 4)
             }
         }
+        .refreshable {
+            await DataSync.syncDatabase()
+            categories = Database.shared.categories(parentId: nil)
+        }
     }
 
     private var searchResultsList: some View {

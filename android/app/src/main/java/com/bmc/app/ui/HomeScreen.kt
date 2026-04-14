@@ -31,21 +31,25 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.bmc.app.data.DataSync
 import com.bmc.app.data.Database
 import com.bmc.app.data.SyncState
 import com.bmc.app.models.Category
 import com.bmc.app.models.ContentItem
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,9 +58,11 @@ fun HomeScreen(
     onCategoryTap: (Category) -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
     var searchQuery by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<ContentItem>>(emptyList()) }
+    var isRefreshing by remember { mutableStateOf(false) }
     val isSearching = searchQuery.isNotBlank()
 
     LaunchedEffect(Unit) {
@@ -85,11 +91,21 @@ fun HomeScreen(
             SyncStatusBar(syncState)
         }
     ) { innerPadding ->
-        Column(
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                scope.launch {
+                    isRefreshing = true
+                    DataSync.syncIfNeeded(context)
+                    categories = Database.getInstance(context).categories(parentId = null)
+                    isRefreshing = false
+                }
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            Column(modifier = Modifier.fillMaxSize()) {
             // Search bar
             OutlinedTextField(
                 value = searchQuery,
@@ -163,6 +179,7 @@ fun HomeScreen(
                         HorizontalDivider()
                     }
                 }
+            }
             }
         }
     }

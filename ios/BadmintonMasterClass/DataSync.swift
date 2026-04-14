@@ -31,6 +31,51 @@ enum SyncConfig {
 enum DataSync {
     private static var remoteURL: URL { SyncConfig.remoteURL }
 
+    /// Async version of syncIfNeeded for use with pull-to-refresh.
+    /// Returns when the download completes (or fails).
+    static func syncDatabase() async {
+        await withCheckedContinuation { continuation in
+            Task { @MainActor in
+                SyncManager.shared.setSyncing()
+            }
+
+            let task = URLSession.shared.downloadTask(with: remoteURL) { tempURL, response, error in
+                guard let tempURL = tempURL, error == nil else {
+                    print("[DataSync] Download failed: \(error?.localizedDescription ?? "unknown error")")
+                    Task { @MainActor in SyncManager.shared.setFailed() }
+                    continuation.resume()
+                    return
+                }
+
+                if let httpResponse = response as? HTTPURLResponse,
+                   !(200...299).contains(httpResponse.statusCode) {
+                    print("[DataSync] Server returned status \(httpResponse.statusCode)")
+                    Task { @MainActor in SyncManager.shared.setFailed() }
+                    continuation.resume()
+                    return
+                }
+
+                let stableTemp = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString + ".db")
+                do {
+                    try FileManager.default.moveItem(at: tempURL, to: stableTemp)
+                } catch {
+                    print("[DataSync] Failed to stage downloaded file: \(error)")
+                    Task { @MainActor in SyncManager.shared.setFailed() }
+                    continuation.resume()
+                    return
+                }
+
+                DispatchQueue.main.async {
+                    Database.shared.replaceWith(downloadedDBAt: stableTemp)
+                    SyncManager.shared.setSuccess()
+                    continuation.resume()
+                }
+            }
+            task.resume()
+        }
+    }
+
     /// Download the latest DB from the remote URL and replace the local copy.
     /// Reports progress via SyncManager. Failures are non-fatal — the app continues with local data.
     static func syncIfNeeded() {
