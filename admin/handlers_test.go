@@ -537,6 +537,62 @@ func TestContentActionHandler_InvalidPath(t *testing.T) {
 	}
 }
 
+func TestBasicAuth_NoCredentials(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	dbPath := "test_" + t.Name() + ".db"
+	defer cleanup()
+
+	mux := setupRoutes(db, dbPath)
+	handler := basicAuth(mux, "admin", "admin")
+
+	req := httptest.NewRequest(http.MethodGet, "/categories", nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
+	}
+	if w.Header().Get("WWW-Authenticate") == "" {
+		t.Error("expected WWW-Authenticate header")
+	}
+}
+
+func TestBasicAuth_WrongCredentials(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	dbPath := "test_" + t.Name() + ".db"
+	defer cleanup()
+
+	mux := setupRoutes(db, dbPath)
+	handler := basicAuth(mux, "admin", "admin")
+
+	req := httptest.NewRequest(http.MethodGet, "/categories", nil)
+	req.SetBasicAuth("admin", "wrongpass")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
+	}
+}
+
+func TestBasicAuth_ValidCredentials(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	dbPath := "test_" + t.Name() + ".db"
+	defer cleanup()
+
+	mux := setupRoutes(db, dbPath)
+	handler := basicAuth(mux, "admin", "admin")
+
+	req := httptest.NewRequest(http.MethodGet, "/categories", nil)
+	req.SetBasicAuth("admin", "admin")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
 func TestExportDB(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	dbPath := "test_" + t.Name() + ".db"
