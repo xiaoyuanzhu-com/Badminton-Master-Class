@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -40,7 +41,7 @@ func basicAuth(next http.Handler, username, password string) http.Handler {
 		if !ok ||
 			subtle.ConstantTimeCompare([]byte(u), []byte(username)) != 1 ||
 			subtle.ConstantTimeCompare([]byte(p), []byte(password)) != 1 {
-			w.Header().Set("WWW-Authenticate", `Basic realm="BMC Admin"`)
+			w.Header().Set("WWW-Authenticate", `Basic realm="BMC"`)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -48,33 +49,37 @@ func basicAuth(next http.Handler, username, password string) http.Handler {
 	})
 }
 
-func setupRoutes(db *sql.DB, dbPath string) *http.ServeMux {
+func setupRoutes(db *sql.DB) *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/categories", http.StatusSeeOther)
-	})
+	mux.HandleFunc("/", homeHandler(db))
 	mux.HandleFunc("/categories", categoriesHandler(db))
-	mux.HandleFunc("/categories/", categoryActionHandler(db))
 	mux.HandleFunc("/contents", contentsHandler(db))
-	mux.HandleFunc("/contents/", contentActionHandler(db))
-	mux.HandleFunc("/export", exportHandler(db, dbPath))
+	mux.HandleFunc("/contents/", contentDetailHandler(db))
+	mux.HandleFunc("/people", peopleListHandler(db))
+	mux.HandleFunc("/people/", personDetailHandler(db))
+	mux.HandleFunc("/search", searchHandler(db))
 	return mux
 }
 
 func main() {
-	dbPath := "bmc.db"
+	dbPath := getEnv("BMC_DB_PATH", "bmc.db")
 	db, err := initDB(dbPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	username := getEnv("BMC_ADMIN_USER", "admin")
-	password := getEnv("BMC_ADMIN_PASSWORD", "admin")
+	mux := setupRoutes(db)
 
-	mux := setupRoutes(db, dbPath)
-	handler := basicAuth(mux, username, password)
+	var handler http.Handler = mux
+	authEnabled := strings.ToLower(getEnv("BMC_AUTH_ENABLED", "false"))
+	if authEnabled == "true" || authEnabled == "1" {
+		username := getEnv("BMC_ADMIN_USER", "admin")
+		password := getEnv("BMC_ADMIN_PASSWORD", "admin")
+		handler = basicAuth(mux, username, password)
+	}
 
-	fmt.Println("羽球大师课 Admin panel running on :8080")
-	log.Fatal(http.ListenAndServe(":8080", handler))
+	addr := getEnv("BMC_ADDR", ":8080")
+	fmt.Printf("羽球大师课 running on %s\n", addr)
+	log.Fatal(http.ListenAndServe(addr, handler))
 }

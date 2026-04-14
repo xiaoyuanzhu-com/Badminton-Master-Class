@@ -2,21 +2,32 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"html/template"
-	"io"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 )
 
+// ── Models ──────────────────────────────────────────────────────────
+
 type Category struct {
-	ID        int
-	Name      string
-	Icon      string
-	SortOrder int
-	ParentID  sql.NullInt64
+	ID           int
+	Name         string
+	Icon         string
+	SortOrder    int
+	ParentID     sql.NullInt64
+	ParentName   string
+	ContentCount int
+	Children     []Category
+}
+
+type Person struct {
+	ID            int
+	Slug          string
+	Name          string
+	Bio           string
+	PlatformsJSON string
+	ContentCount  int
 }
 
 type Content struct {
@@ -27,104 +38,442 @@ type Content struct {
 	SourceURL      string
 	SourcePlatform string
 	AuthorName     string
+	PersonID       sql.NullInt64
+	PersonName     string
+	Difficulty     string
+	Duration       string
+	EditorNotes    string
 	CategoryID     int
 	CategoryName   string
 	SortOrder      int
 }
 
-func categoriesHandler(db *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			rows, err := db.Query("SELECT id, name, icon, sort_order, parent_id FROM categories ORDER BY sort_order")
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			defer rows.Close()
+// ── Template helpers ────────────────────────────────────────────────
 
-			var cats []Category
-			for rows.Next() {
-				var c Category
-				if err := rows.Scan(&c.ID, &c.Name, &c.Icon, &c.SortOrder, &c.ParentID); err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				cats = append(cats, c)
-			}
-			if err := rows.Err(); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			tmpl, err := template.ParseFiles("templates/categories.html")
-			if err != nil {
-				// Fallback: plain text output for testing
-				w.Header().Set("Content-Type", "text/plain")
-				for _, c := range cats {
-					fmt.Fprintf(w, "Category: %s (icon=%s, sort=%d)\n", c.Name, c.Icon, c.SortOrder)
-				}
-				return
-			}
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			tmpl.Execute(w, cats)
-
-		case http.MethodPost:
-			if err := r.ParseForm(); err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			name := r.FormValue("name")
-			icon := r.FormValue("icon")
-			sortOrder, _ := strconv.Atoi(r.FormValue("sort_order"))
-			parentIDStr := r.FormValue("parent_id")
-
-			var parentID sql.NullInt64
-			if parentIDStr != "" {
-				pid, err := strconv.ParseInt(parentIDStr, 10, 64)
-				if err == nil {
-					parentID = sql.NullInt64{Int64: pid, Valid: true}
-				}
-			}
-
-			_, err := db.Exec(
-				"INSERT INTO categories (name, icon, sort_order, parent_id) VALUES (?, ?, ?, ?)",
-				name, icon, sortOrder, parentID,
-			)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			http.Redirect(w, r, "/categories", http.StatusSeeOther)
-
+var funcMap = template.FuncMap{
+	"platformLabel": func(p string) string {
+		switch p {
+		case "bilibili":
+			return "Bilibili"
+		case "xiaohongshu":
+			return "小红书"
+		case "douyin":
+			return "抖音"
+		case "wechat":
+			return "微信"
+		case "youtube":
+			return "YouTube"
 		default:
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return "其他"
 		}
+	},
+	"difficultyLabel": func(d string) string {
+		switch d {
+		case "beginner":
+			return "入门"
+		case "intermediate":
+			return "进阶"
+		case "advanced":
+			return "高级"
+		default:
+			return d
+		}
+	},
+}
+
+func parseTemplate(name string) (*template.Template, error) {
+	return template.New(name).Funcs(funcMap).ParseFiles("templates/" + name)
+}
+
+// ── Handlers ────────────────────────────────────────────────────────
+
+// homeHandler shows the home page with category hierarchy.
+func homeHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+
+		rows, err := db.Query(`
+			SELECT c.id, c.name, c.icon, c.sort_order, c.parent_id,
+			       (SELECT COUNT(*) FROM contents WHERE category_id = c.id) AS content_count
+			FROM categories c
+			ORDER BY c.sort_order`)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		var allCats []Category
+		for rows.Next() {
+			var c Category
+			if err := rows.Scan(&c.ID, &c.Name, &c.Icon, &c.SortOrder, &c.ParentID, &c.ContentCount); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			allCats = append(allCats, c)
+		}
+		if err := rows.Err(); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Build hierarchy: top-level categories with children
+		childMap := make(map[int64][]Category)
+		var topLevel []Category
+		for _, c := range allCats {
+			if c.ParentID.Valid {
+				childMap[c.ParentID.Int64] = append(childMap[c.ParentID.Int64], c)
+			} else {
+				topLevel = append(topLevel, c)
+			}
+		}
+		for i := range topLevel {
+			topLevel[i].Children = childMap[int64(topLevel[i].ID)]
+		}
+
+		tmpl, err := parseTemplate("home.html")
+		if err != nil {
+			w.Header().Set("Content-Type", "text/plain")
+			for _, c := range topLevel {
+				w.Write([]byte("Category: " + c.Name + "\n"))
+			}
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		tmpl.Execute(w, topLevel)
 	}
 }
 
+// categoriesHandler shows a list of all categories.
+func categoriesHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		rows, err := db.Query(`
+			SELECT c.id, c.name, c.icon, c.sort_order, c.parent_id,
+			       COALESCE(p.name, '') AS parent_name,
+			       (SELECT COUNT(*) FROM contents WHERE category_id = c.id) AS content_count
+			FROM categories c
+			LEFT JOIN categories p ON c.parent_id = p.id
+			ORDER BY c.sort_order`)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		var cats []Category
+		for rows.Next() {
+			var c Category
+			if err := rows.Scan(&c.ID, &c.Name, &c.Icon, &c.SortOrder, &c.ParentID, &c.ParentName, &c.ContentCount); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			cats = append(cats, c)
+		}
+		if err := rows.Err(); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		tmpl, err := parseTemplate("categories.html")
+		if err != nil {
+			w.Header().Set("Content-Type", "text/plain")
+			for _, c := range cats {
+				w.Write([]byte("Category: " + c.Name + "\n"))
+			}
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		tmpl.Execute(w, cats)
+	}
+}
+
+// contentsHandler shows contents, optionally filtered by category.
 func contentsHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		query := `
+			SELECT c.id, c.title, c.summary, c.thumbnail_url, c.source_url,
+			       c.source_platform, c.author_name, c.person_id,
+			       COALESCE(p.name, c.author_name) AS person_name,
+			       c.difficulty, c.duration, c.category_id,
+			       COALESCE(cat.name, ''), c.sort_order
+			FROM contents c
+			LEFT JOIN categories cat ON c.category_id = cat.id
+			LEFT JOIN people p ON c.person_id = p.id`
+
+		var args []interface{}
+		catIDStr := r.URL.Query().Get("category_id")
+		var catName string
+		if catIDStr != "" {
+			catID, err := strconv.Atoi(catIDStr)
+			if err == nil {
+				query += " WHERE c.category_id = ?"
+				args = append(args, catID)
+				_ = db.QueryRow("SELECT name FROM categories WHERE id = ?", catID).Scan(&catName)
+			}
+		}
+		query += " ORDER BY c.sort_order"
+
+		rows, err := db.Query(query, args...)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		var contents []Content
+		for rows.Next() {
+			var ct Content
+			if err := rows.Scan(&ct.ID, &ct.Title, &ct.Summary, &ct.ThumbnailURL,
+				&ct.SourceURL, &ct.SourcePlatform, &ct.AuthorName, &ct.PersonID,
+				&ct.PersonName, &ct.Difficulty, &ct.Duration,
+				&ct.CategoryID, &ct.CategoryName, &ct.SortOrder); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			contents = append(contents, ct)
+		}
+		if err := rows.Err(); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		data := struct {
+			Contents     []Content
+			CategoryName string
+			CategoryID   string
+		}{contents, catName, catIDStr}
+
+		tmpl, err := parseTemplate("contents.html")
+		if err != nil {
+			w.Header().Set("Content-Type", "text/plain")
+			for _, ct := range contents {
+				w.Write([]byte("Content: " + ct.Title + " (category=" + ct.CategoryName + ")\n"))
+			}
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		tmpl.Execute(w, data)
+	}
+}
+
+// contentDetailHandler shows a single content item.
+func contentDetailHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		idStr := strings.TrimPrefix(r.URL.Path, "/contents/")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+
+		var ct Content
+		err = db.QueryRow(`
+			SELECT c.id, c.title, c.summary, c.thumbnail_url, c.source_url,
+			       c.source_platform, c.author_name, c.person_id,
+			       COALESCE(p.name, c.author_name) AS person_name,
+			       c.difficulty, c.duration, c.editor_notes,
+			       c.category_id, COALESCE(cat.name, ''), c.sort_order
+			FROM contents c
+			LEFT JOIN categories cat ON c.category_id = cat.id
+			LEFT JOIN people p ON c.person_id = p.id
+			WHERE c.id = ?`, id).
+			Scan(&ct.ID, &ct.Title, &ct.Summary, &ct.ThumbnailURL,
+				&ct.SourceURL, &ct.SourcePlatform, &ct.AuthorName, &ct.PersonID,
+				&ct.PersonName, &ct.Difficulty, &ct.Duration, &ct.EditorNotes,
+				&ct.CategoryID, &ct.CategoryName, &ct.SortOrder)
+		if err == sql.ErrNoRows {
+			http.NotFound(w, r)
+			return
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		tmpl, err := parseTemplate("content_detail.html")
+		if err != nil {
+			w.Header().Set("Content-Type", "text/plain")
+			w.Write([]byte("Content: " + ct.Title))
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		tmpl.Execute(w, ct)
+	}
+}
+
+// peopleListHandler shows all people.
+func peopleListHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		rows, err := db.Query(`
+			SELECT p.id, p.slug, p.name, p.bio, p.platforms_json,
+			       (SELECT COUNT(*) FROM contents WHERE person_id = p.id) AS content_count
+			FROM people p
+			ORDER BY p.name`)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		var people []Person
+		for rows.Next() {
+			var p Person
+			if err := rows.Scan(&p.ID, &p.Slug, &p.Name, &p.Bio, &p.PlatformsJSON, &p.ContentCount); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			people = append(people, p)
+		}
+		if err := rows.Err(); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		tmpl, err := parseTemplate("people.html")
+		if err != nil {
+			w.Header().Set("Content-Type", "text/plain")
+			for _, p := range people {
+				w.Write([]byte("Person: " + p.Name + "\n"))
+			}
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		tmpl.Execute(w, people)
+	}
+}
+
+// personDetailHandler shows a single person with their contents.
+func personDetailHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		idStr := strings.TrimPrefix(r.URL.Path, "/people/")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+
+		var p Person
+		err = db.QueryRow("SELECT id, slug, name, bio, platforms_json FROM people WHERE id = ?", id).
+			Scan(&p.ID, &p.Slug, &p.Name, &p.Bio, &p.PlatformsJSON)
+		if err == sql.ErrNoRows {
+			http.NotFound(w, r)
+			return
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Load their content
+		rows, err := db.Query(`
+			SELECT c.id, c.title, c.summary, c.thumbnail_url, c.source_url,
+			       c.source_platform, c.author_name, c.difficulty, c.duration,
+			       c.category_id, COALESCE(cat.name, ''), c.sort_order
+			FROM contents c
+			LEFT JOIN categories cat ON c.category_id = cat.id
+			WHERE c.person_id = ?
+			ORDER BY c.sort_order`, id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		var contents []Content
+		for rows.Next() {
+			var ct Content
+			if err := rows.Scan(&ct.ID, &ct.Title, &ct.Summary, &ct.ThumbnailURL,
+				&ct.SourceURL, &ct.SourcePlatform, &ct.AuthorName, &ct.Difficulty,
+				&ct.Duration, &ct.CategoryID, &ct.CategoryName, &ct.SortOrder); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			contents = append(contents, ct)
+		}
+
+		data := struct {
+			Person   Person
+			Contents []Content
+		}{p, contents}
+
+		tmpl, err := parseTemplate("person_detail.html")
+		if err != nil {
+			w.Header().Set("Content-Type", "text/plain")
+			w.Write([]byte("Person: " + p.Name + "\n"))
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		tmpl.Execute(w, data)
+	}
+}
+
+// searchHandler searches across contents, categories, and people.
+func searchHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		q := strings.TrimSpace(r.URL.Query().Get("q"))
+
+		var contents []Content
+		var people []Person
+
+		if q != "" {
+			like := "%" + q + "%"
+
+			// Search contents by title, summary, author_name, or person name
 			rows, err := db.Query(`
 				SELECT c.id, c.title, c.summary, c.thumbnail_url, c.source_url,
-				       c.source_platform, c.author_name, c.category_id,
+				       c.source_platform, c.author_name, c.person_id,
+				       COALESCE(p.name, c.author_name) AS person_name,
+				       c.difficulty, c.duration, c.category_id,
 				       COALESCE(cat.name, ''), c.sort_order
 				FROM contents c
 				LEFT JOIN categories cat ON c.category_id = cat.id
-				ORDER BY c.sort_order`)
+				LEFT JOIN people p ON c.person_id = p.id
+				WHERE c.title LIKE ? OR c.summary LIKE ? OR c.author_name LIKE ? OR p.name LIKE ?
+				ORDER BY c.sort_order`, like, like, like, like)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 			defer rows.Close()
 
-			var contents []Content
 			for rows.Next() {
 				var ct Content
 				if err := rows.Scan(&ct.ID, &ct.Title, &ct.Summary, &ct.ThumbnailURL,
-					&ct.SourceURL, &ct.SourcePlatform, &ct.AuthorName,
+					&ct.SourceURL, &ct.SourcePlatform, &ct.AuthorName, &ct.PersonID,
+					&ct.PersonName, &ct.Difficulty, &ct.Duration,
 					&ct.CategoryID, &ct.CategoryName, &ct.SortOrder); err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
@@ -136,386 +485,42 @@ func contentsHandler(db *sql.DB) http.HandlerFunc {
 				return
 			}
 
-			// Also load categories for the dropdown
-			catRows, err := db.Query("SELECT id, name FROM categories ORDER BY sort_order")
+			// Search people by name or bio
+			pRows, err := db.Query(`
+				SELECT p.id, p.slug, p.name, p.bio, p.platforms_json,
+				       (SELECT COUNT(*) FROM contents WHERE person_id = p.id) AS content_count
+				FROM people p
+				WHERE p.name LIKE ? OR p.bio LIKE ?
+				ORDER BY p.name`, like, like)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			defer catRows.Close()
+			defer pRows.Close()
 
-			var cats []Category
-			for catRows.Next() {
-				var c Category
-				if err := catRows.Scan(&c.ID, &c.Name); err != nil {
+			for pRows.Next() {
+				var p Person
+				if err := pRows.Scan(&p.ID, &p.Slug, &p.Name, &p.Bio, &p.PlatformsJSON, &p.ContentCount); err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
-				cats = append(cats, c)
+				people = append(people, p)
 			}
-
-			data := struct {
-				Contents   []Content
-				Categories []Category
-			}{contents, cats}
-
-			tmpl, err := template.ParseFiles("templates/contents.html")
-			if err != nil {
-				// Fallback: plain text output for testing
-				w.Header().Set("Content-Type", "text/plain")
-				for _, ct := range contents {
-					fmt.Fprintf(w, "Content: %s (category=%s, platform=%s)\n", ct.Title, ct.CategoryName, ct.SourcePlatform)
-				}
-				return
-			}
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			tmpl.Execute(w, data)
-
-		case http.MethodPost:
-			if err := r.ParseForm(); err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			title := r.FormValue("title")
-			summary := r.FormValue("summary")
-			thumbnailURL := r.FormValue("thumbnail_url")
-			sourceURL := r.FormValue("source_url")
-			sourcePlatform := r.FormValue("source_platform")
-			authorName := r.FormValue("author_name")
-			categoryID, _ := strconv.Atoi(r.FormValue("category_id"))
-			sortOrder, _ := strconv.Atoi(r.FormValue("sort_order"))
-
-			_, err := db.Exec(
-				`INSERT INTO contents (title, summary, thumbnail_url, source_url, source_platform, author_name, category_id, sort_order)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-				title, summary, thumbnailURL, sourceURL, sourcePlatform, authorName, categoryID, sortOrder,
-			)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			http.Redirect(w, r, "/contents", http.StatusSeeOther)
-
-		default:
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		}
-	}
-}
-
-// contentActionHandler routes /contents/{id}/edit and /contents/{id}/delete.
-func contentActionHandler(db *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		path := strings.TrimPrefix(r.URL.Path, "/contents/")
-		parts := strings.SplitN(path, "/", 2)
-		if len(parts) != 2 {
-			http.NotFound(w, r)
-			return
-		}
-
-		id, err := strconv.Atoi(parts[0])
-		if err != nil {
-			http.NotFound(w, r)
-			return
-		}
-
-		switch parts[1] {
-		case "edit":
-			contentEditHandler(db, id, w, r)
-		case "delete":
-			contentDeleteHandler(db, id, w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	}
-}
-
-func contentEditHandler(db *sql.DB, id int, w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		var ct Content
-		err := db.QueryRow(`SELECT id, title, summary, thumbnail_url, source_url,
-			source_platform, author_name, category_id, sort_order
-			FROM contents WHERE id = ?`, id).
-			Scan(&ct.ID, &ct.Title, &ct.Summary, &ct.ThumbnailURL,
-				&ct.SourceURL, &ct.SourcePlatform, &ct.AuthorName,
-				&ct.CategoryID, &ct.SortOrder)
-		if err == sql.ErrNoRows {
-			http.NotFound(w, r)
-			return
-		}
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		// Load categories for dropdown
-		rows, err := db.Query("SELECT id, name FROM categories ORDER BY sort_order")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		defer rows.Close()
-
-		var cats []Category
-		for rows.Next() {
-			var c Category
-			if err := rows.Scan(&c.ID, &c.Name); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			cats = append(cats, c)
 		}
 
 		data := struct {
-			Content    Content
-			Categories []Category
-		}{ct, cats}
+			Query    string
+			Contents []Content
+			People   []Person
+		}{q, contents, people}
 
-		tmpl, err := template.ParseFiles("templates/content_edit.html")
+		tmpl, err := parseTemplate("search.html")
 		if err != nil {
-			// Fallback: plain text for testing
 			w.Header().Set("Content-Type", "text/plain")
-			fmt.Fprintf(w, "Edit Content: %s (id=%d, platform=%s, sort=%d)", ct.Title, ct.ID, ct.SourcePlatform, ct.SortOrder)
+			w.Write([]byte("Search: " + q + "\n"))
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		tmpl.Execute(w, data)
-
-	case http.MethodPost:
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		title := r.FormValue("title")
-		summary := r.FormValue("summary")
-		thumbnailURL := r.FormValue("thumbnail_url")
-		sourceURL := r.FormValue("source_url")
-		sourcePlatform := r.FormValue("source_platform")
-		authorName := r.FormValue("author_name")
-		categoryID, _ := strconv.Atoi(r.FormValue("category_id"))
-		sortOrder, _ := strconv.Atoi(r.FormValue("sort_order"))
-
-		result, err := db.Exec(
-			`UPDATE contents SET title = ?, summary = ?, thumbnail_url = ?, source_url = ?,
-			 source_platform = ?, author_name = ?, category_id = ?, sort_order = ?,
-			 updated_at = datetime('now') WHERE id = ?`,
-			title, summary, thumbnailURL, sourceURL, sourcePlatform, authorName, categoryID, sortOrder, id,
-		)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		rows, _ := result.RowsAffected()
-		if rows == 0 {
-			http.NotFound(w, r)
-			return
-		}
-		http.Redirect(w, r, "/contents", http.StatusSeeOther)
-
-	default:
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-	}
-}
-
-func contentDeleteHandler(db *sql.DB, id int, w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	result, err := db.Exec("DELETE FROM contents WHERE id = ?", id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
-		http.NotFound(w, r)
-		return
-	}
-	http.Redirect(w, r, "/contents", http.StatusSeeOther)
-}
-
-// categoryActionHandler routes /categories/{id}/edit and /categories/{id}/delete.
-func categoryActionHandler(db *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Parse path: /categories/{id}/edit or /categories/{id}/delete
-		path := strings.TrimPrefix(r.URL.Path, "/categories/")
-		parts := strings.SplitN(path, "/", 2)
-		if len(parts) != 2 {
-			http.NotFound(w, r)
-			return
-		}
-
-		id, err := strconv.Atoi(parts[0])
-		if err != nil {
-			http.NotFound(w, r)
-			return
-		}
-
-		switch parts[1] {
-		case "edit":
-			categoryEditHandler(db, id, w, r)
-		case "delete":
-			categoryDeleteHandler(db, id, w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	}
-}
-
-func categoryEditHandler(db *sql.DB, id int, w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		var c Category
-		err := db.QueryRow("SELECT id, name, icon, sort_order, parent_id FROM categories WHERE id = ?", id).
-			Scan(&c.ID, &c.Name, &c.Icon, &c.SortOrder, &c.ParentID)
-		if err == sql.ErrNoRows {
-			http.NotFound(w, r)
-			return
-		}
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		// Load all categories for parent dropdown (exclude self)
-		rows, err := db.Query("SELECT id, name FROM categories WHERE id != ? ORDER BY sort_order", id)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		defer rows.Close()
-
-		var cats []Category
-		for rows.Next() {
-			var cat Category
-			if err := rows.Scan(&cat.ID, &cat.Name); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			cats = append(cats, cat)
-		}
-
-		parentIDValue := 0
-		if c.ParentID.Valid {
-			parentIDValue = int(c.ParentID.Int64)
-		}
-
-		data := struct {
-			Category      Category
-			Categories    []Category
-			ParentIDValue int
-		}{c, cats, parentIDValue}
-
-		tmpl, err := template.ParseFiles("templates/category_edit.html")
-		if err != nil {
-			// Fallback: plain text for testing
-			w.Header().Set("Content-Type", "text/plain")
-			fmt.Fprintf(w, "Edit Category: %s (id=%d, icon=%s, sort=%d)", c.Name, c.ID, c.Icon, c.SortOrder)
-			return
-		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		tmpl.Execute(w, data)
-
-	case http.MethodPost:
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		name := r.FormValue("name")
-		icon := r.FormValue("icon")
-		sortOrder, _ := strconv.Atoi(r.FormValue("sort_order"))
-		parentIDStr := r.FormValue("parent_id")
-
-		var parentID sql.NullInt64
-		if parentIDStr != "" {
-			pid, err := strconv.ParseInt(parentIDStr, 10, 64)
-			if err == nil {
-				parentID = sql.NullInt64{Int64: pid, Valid: true}
-			}
-		}
-
-		result, err := db.Exec(
-			"UPDATE categories SET name = ?, icon = ?, sort_order = ?, parent_id = ? WHERE id = ?",
-			name, icon, sortOrder, parentID, id,
-		)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		rows, _ := result.RowsAffected()
-		if rows == 0 {
-			http.NotFound(w, r)
-			return
-		}
-		http.Redirect(w, r, "/categories", http.StatusSeeOther)
-
-	default:
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-	}
-}
-
-func categoryDeleteHandler(db *sql.DB, id int, w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Check for child categories
-	var childCount int
-	if err := db.QueryRow("SELECT COUNT(*) FROM categories WHERE parent_id = ?", id).Scan(&childCount); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if childCount > 0 {
-		http.Error(w, "Cannot delete category: it has child categories. Remove or reassign them first.", http.StatusConflict)
-		return
-	}
-
-	// Check for associated contents
-	var contentCount int
-	if err := db.QueryRow("SELECT COUNT(*) FROM contents WHERE category_id = ?", id).Scan(&contentCount); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if contentCount > 0 {
-		http.Error(w, "Cannot delete category: it has associated content. Remove or reassign the content first.", http.StatusConflict)
-		return
-	}
-
-	result, err := db.Exec("DELETE FROM categories WHERE id = ?", id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
-		http.NotFound(w, r)
-		return
-	}
-	http.Redirect(w, r, "/categories", http.StatusSeeOther)
-}
-
-func exportHandler(db *sql.DB, dbPath string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if _, err := db.Exec("PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		// Upload to Aliyun OSS in the background (best-effort).
-		tryUploadToOSS(dbPath)
-
-		f, err := os.Open(dbPath)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		defer f.Close()
-
-		w.Header().Set("Content-Type", "application/x-sqlite3")
-		w.Header().Set("Content-Disposition", "attachment; filename=badminton-master-class.db")
-		io.Copy(w, f)
 	}
 }
