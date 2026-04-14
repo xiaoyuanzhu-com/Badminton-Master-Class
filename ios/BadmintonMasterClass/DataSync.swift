@@ -32,11 +32,16 @@ enum DataSync {
     private static var remoteURL: URL { SyncConfig.remoteURL }
 
     /// Download the latest DB from the remote URL and replace the local copy.
-    /// Failures are silently ignored — the app continues with local data.
+    /// Reports progress via SyncManager. Failures are non-fatal — the app continues with local data.
     static func syncIfNeeded() {
+        Task { @MainActor in
+            SyncManager.shared.setSyncing()
+        }
+
         let task = URLSession.shared.downloadTask(with: remoteURL) { tempURL, response, error in
             guard let tempURL = tempURL, error == nil else {
                 print("[DataSync] Download failed: \(error?.localizedDescription ?? "unknown error")")
+                Task { @MainActor in SyncManager.shared.setFailed() }
                 return
             }
 
@@ -44,6 +49,7 @@ enum DataSync {
             if let httpResponse = response as? HTTPURLResponse,
                !(200...299).contains(httpResponse.statusCode) {
                 print("[DataSync] Server returned status \(httpResponse.statusCode)")
+                Task { @MainActor in SyncManager.shared.setFailed() }
                 return
             }
 
@@ -54,11 +60,13 @@ enum DataSync {
                 try FileManager.default.moveItem(at: tempURL, to: stableTemp)
             } catch {
                 print("[DataSync] Failed to stage downloaded file: \(error)")
+                Task { @MainActor in SyncManager.shared.setFailed() }
                 return
             }
 
             DispatchQueue.main.async {
                 Database.shared.replaceWith(downloadedDBAt: stableTemp)
+                SyncManager.shared.setSuccess()
             }
         }
         task.resume()

@@ -2,10 +2,21 @@ package com.bmc.app.data
 
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+
+/** Represents the current state of data synchronisation. */
+sealed interface SyncState {
+    data object Idle : SyncState
+    data object Syncing : SyncState
+    data object Success : SyncState
+    data object Failed : SyncState
+}
 
 // ---------------------------------------------------------------------------
 // OSS Configuration
@@ -37,11 +48,23 @@ object SyncConfig {
 
 object DataSync {
 
+    private val _state = MutableStateFlow<SyncState>(SyncState.Idle)
+
+    /** Observable sync state for UI consumption. */
+    val state: StateFlow<SyncState> = _state.asStateFlow()
+
+    /** Reset state to idle (called after auto-dismiss delay). */
+    fun resetState() {
+        _state.value = SyncState.Idle
+    }
+
     /**
      * Download the latest DB from the remote URL and replace the local copy.
-     * Failures are silently ignored — the app continues with local data.
+     * Updates [state] so the UI can show progress. Failures are non-fatal —
+     * the app continues with local data.
      */
     suspend fun syncIfNeeded(context: Context) {
+        _state.value = SyncState.Syncing
         withContext(Dispatchers.IO) {
             try {
                 val url = URL(SyncConfig.remoteUrl)
@@ -51,6 +74,7 @@ object DataSync {
 
                 try {
                     if (connection.responseCode !in 200..299) {
+                        _state.value = SyncState.Failed
                         return@withContext
                     }
 
@@ -62,12 +86,13 @@ object DataSync {
                     }
 
                     Database.getInstance(context).replaceWith(tempFile)
+                    _state.value = SyncState.Success
                 } finally {
                     connection.disconnect()
                 }
             } catch (e: Exception) {
-                // Silently ignore — continue with local data
                 e.printStackTrace()
+                _state.value = SyncState.Failed
             }
         }
     }
