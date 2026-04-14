@@ -20,7 +20,7 @@ func initDB(dbPath string) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, err := db.Exec(schemaSQL); err != nil {
+	if err := migrateDB(db); err != nil {
 		db.Close()
 		return nil, err
 	}
