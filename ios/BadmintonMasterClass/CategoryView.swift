@@ -64,28 +64,73 @@ struct ContentRow: View {
     let item: ContentItem
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(item.title)
-                .font(.headline)
+        HStack(alignment: .top, spacing: 12) {
+            ContentThumbnail(url: item.thumbnailUrl)
 
-            if !item.summary.isEmpty {
-                Text(item.summary)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            }
+            VStack(alignment: .leading, spacing: 6) {
+                Text(item.title)
+                    .font(.headline)
 
-            HStack(spacing: 8) {
-                PlatformBadge(platform: item.sourcePlatform)
-
-                if !item.authorName.isEmpty {
-                    Text(item.authorName)
-                        .font(.caption)
+                if !item.summary.isEmpty {
+                    Text(item.summary)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                HStack(spacing: 8) {
+                    PlatformBadge(platform: item.sourcePlatform)
+
+                    if !item.authorName.isEmpty {
+                        Text(item.authorName)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+struct ContentThumbnail: View {
+    let url: String
+
+    private var imageURL: URL? {
+        guard !url.isEmpty else { return nil }
+        return URL(string: url)
+    }
+
+    var body: some View {
+        Group {
+            if let imageURL {
+                AsyncImage(url: imageURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    case .failure:
+                        placeholder
+                    default:
+                        placeholder
+                    }
+                }
+            } else {
+                placeholder
+            }
+        }
+        .frame(width: 60, height: 45)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+
+    private var placeholder: some View {
+        ZStack {
+            Color(.systemGray5)
+            Image(systemName: "play.rectangle.fill")
+                .foregroundStyle(.secondary)
+                .font(.system(size: 16))
+        }
     }
 }
 
