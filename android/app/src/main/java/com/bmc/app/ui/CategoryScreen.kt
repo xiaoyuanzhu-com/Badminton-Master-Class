@@ -187,7 +187,7 @@ private fun ContentRow(
 }
 
 @Composable
-private fun PlatformBadge(platform: String) {
+internal fun PlatformBadge(platform: String) {
     val (displayName, badgeColor) = when (platform) {
         "bilibili" -> "B站" to Color(0xFFFB7299)
         "xiaohongshu" -> "小红书" to Color(0xFFFF2442)

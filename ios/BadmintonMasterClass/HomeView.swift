@@ -2,19 +2,22 @@ import SwiftUI
 
 struct HomeView: View {
     @State private var categories: [Category] = []
+    @State private var searchText = ""
+    @State private var searchResults: [ContentItem] = []
+    @State private var selectedURL: URL?
     @EnvironmentObject private var syncManager: SyncManager
+
+    private var isSearching: Bool {
+        !searchText.trimmingCharacters(in: .whitespaces).isEmpty
+    }
 
     var body: some View {
         NavigationStack {
-            List(categories) { category in
-                NavigationLink(value: category) {
-                    HStack(spacing: 12) {
-                        Text(category.icon)
-                            .font(.title2)
-                        Text(category.name)
-                            .font(.body)
-                    }
-                    .padding(.vertical, 4)
+            Group {
+                if isSearching {
+                    searchResultsList
+                } else {
+                    categoriesList
                 }
             }
             .safeAreaInset(edge: .bottom) {
@@ -24,8 +27,49 @@ struct HomeView: View {
             .navigationDestination(for: Category.self) { category in
                 CategoryView(category: category)
             }
+            .searchable(text: $searchText, prompt: "搜索教程")
+            .onChange(of: searchText) { _, newValue in
+                searchResults = Database.shared.searchContents(keyword: newValue)
+            }
+            .sheet(item: $selectedURL) { url in
+                SafariView(url: url)
+                    .ignoresSafeArea()
+            }
             .onAppear {
                 categories = Database.shared.categories(parentId: nil)
+            }
+        }
+    }
+
+    private var categoriesList: some View {
+        List(categories) { category in
+            NavigationLink(value: category) {
+                HStack(spacing: 12) {
+                    Text(category.icon)
+                        .font(.title2)
+                    Text(category.name)
+                        .font(.body)
+                }
+                .padding(.vertical, 4)
+            }
+        }
+    }
+
+    private var searchResultsList: some View {
+        Group {
+            if searchResults.isEmpty {
+                ContentUnavailableView("无搜索结果", systemImage: "magnifyingglass")
+            } else {
+                List(searchResults) { item in
+                    Button {
+                        if let url = URL(string: item.sourceUrl) {
+                            selectedURL = url
+                        }
+                    } label: {
+                        ContentRow(item: item)
+                    }
+                    .tint(.primary)
+                }
             }
         }
     }

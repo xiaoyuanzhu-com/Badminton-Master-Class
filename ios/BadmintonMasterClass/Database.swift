@@ -113,6 +113,41 @@ final class Database {
         return results
     }
 
+    func searchContents(keyword: String) -> [ContentItem] {
+        var results: [ContentItem] = []
+        guard !keyword.trimmingCharacters(in: .whitespaces).isEmpty else { return results }
+        var stmt: OpaquePointer?
+        let sql = "SELECT id, title, summary, thumbnail_url, source_url, source_platform, author_name, category_id, sort_order FROM contents WHERE title LIKE ? OR summary LIKE ? OR author_name LIKE ? ORDER BY sort_order"
+
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return results }
+        let pattern = "%\(keyword)%"
+        sqlite3_bind_text(stmt, 1, (pattern as NSString).utf8String, -1, nil)
+        sqlite3_bind_text(stmt, 2, (pattern as NSString).utf8String, -1, nil)
+        sqlite3_bind_text(stmt, 3, (pattern as NSString).utf8String, -1, nil)
+
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            let id = Int(sqlite3_column_int(stmt, 0))
+            let title = String(cString: sqlite3_column_text(stmt, 1))
+            let summary = String(cString: sqlite3_column_text(stmt, 2))
+            let thumbnailUrl = String(cString: sqlite3_column_text(stmt, 3))
+            let sourceUrl = String(cString: sqlite3_column_text(stmt, 4))
+            let sourcePlatform = String(cString: sqlite3_column_text(stmt, 5))
+            let authorName = String(cString: sqlite3_column_text(stmt, 6))
+            let categoryId = Int(sqlite3_column_int(stmt, 7))
+            let sortOrder = Int(sqlite3_column_int(stmt, 8))
+
+            results.append(ContentItem(
+                id: id, title: title, summary: summary,
+                thumbnailUrl: thumbnailUrl, sourceUrl: sourceUrl,
+                sourcePlatform: sourcePlatform, authorName: authorName,
+                categoryId: categoryId, sortOrder: sortOrder
+            ))
+        }
+
+        sqlite3_finalize(stmt)
+        return results
+    }
+
     // MARK: - Replace DB (for sync)
 
     func replaceWith(downloadedDBAt url: URL) {

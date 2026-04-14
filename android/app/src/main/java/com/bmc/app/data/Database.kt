@@ -110,6 +110,37 @@ class Database private constructor(context: Context) {
         return results
     }
 
+    fun searchContents(keyword: String): List<ContentItem> {
+        val results = mutableListOf<ContentItem>()
+        if (keyword.isBlank()) return results
+        val database = db ?: return results
+
+        val pattern = "%$keyword%"
+        val cursor = database.rawQuery(
+            "SELECT id, title, summary, thumbnail_url, source_url, source_platform, author_name, category_id, sort_order FROM contents WHERE title LIKE ? OR summary LIKE ? OR author_name LIKE ? ORDER BY sort_order",
+            arrayOf(pattern, pattern, pattern)
+        )
+
+        cursor.use { c ->
+            while (c.moveToNext()) {
+                results.add(
+                    ContentItem(
+                        id = c.getInt(0),
+                        title = c.getString(1),
+                        summary = c.getString(2),
+                        thumbnailUrl = c.getString(3),
+                        sourceUrl = c.getString(4),
+                        sourcePlatform = c.getString(5),
+                        authorName = c.getString(6),
+                        categoryId = c.getInt(7),
+                        sortOrder = c.getInt(8)
+                    )
+                )
+            }
+        }
+        return results
+    }
+
     // -- Replace DB (for sync) ------------------------------------------------
 
     fun replaceWith(downloadedFile: File) {
