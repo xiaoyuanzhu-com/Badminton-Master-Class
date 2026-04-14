@@ -57,7 +57,8 @@ fun BMCApp() {
                 categoryName = categoryName,
                 onSubcategoryTap = { sub ->
                     navController.navigate("category/${sub.id}/${sub.name}")
-                }
+                },
+                onBack = { navController.popBackStack() }
             )
         }
     }

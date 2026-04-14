@@ -43,7 +43,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bmc.app.data.DataSync
 import com.bmc.app.data.Database
@@ -145,7 +144,7 @@ fun HomeScreen(
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         items(searchResults) { item ->
-                            SearchResultRow(
+                            ContentRow(
                                 item = item,
                                 onClick = {
                                     val intent = CustomTabsIntent.Builder().build()
@@ -209,57 +208,6 @@ fun HomeScreen(
                     }
                 }
             }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SearchResultRow(
-    item: ContentItem,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Top
-    ) {
-        ContentThumbnail()
-
-        Column(
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(
-                text = item.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            if (item.summary.isNotEmpty()) {
-                Text(
-                    text = item.summary,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2
-                )
-            }
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                PlatformBadge(platform = item.sourcePlatform)
-
-                if (item.authorName.isNotEmpty()) {
-                    Text(
-                        text = item.authorName,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
         }
     }

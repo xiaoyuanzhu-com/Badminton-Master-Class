@@ -5,6 +5,7 @@ struct HomeView: View {
     @State private var searchText = ""
     @State private var searchResults: [ContentItem] = []
     @State private var selectedURL: URL?
+    @State private var searchTask: Task<Void, Never>?
     @EnvironmentObject private var syncManager: SyncManager
 
     private var isSearching: Bool {
@@ -29,14 +30,21 @@ struct HomeView: View {
             }
             .searchable(text: $searchText, prompt: "搜索教程")
             .onChange(of: searchText) { _, newValue in
-                searchResults = Database.shared.searchContents(keyword: newValue)
+                searchTask?.cancel()
+                searchTask = Task {
+                    try? await Task.sleep(nanoseconds: 300_000_000) // 300ms debounce
+                    guard !Task.isCancelled else { return }
+                    let results = await Database.shared.searchContentsAsync(keyword: newValue)
+                    guard !Task.isCancelled else { return }
+                    await MainActor.run { searchResults = results }
+                }
             }
             .sheet(item: $selectedURL) { url in
                 SafariView(url: url)
                     .ignoresSafeArea()
             }
-            .onAppear {
-                categories = Database.shared.categories(parentId: nil)
+            .task {
+                categories = await Database.shared.categoriesAsync(parentId: nil)
             }
         }
     }
@@ -65,7 +73,7 @@ struct HomeView: View {
         }
         .refreshable {
             await DataSync.syncDatabase()
-            categories = Database.shared.categories(parentId: nil)
+            categories = await Database.shared.categoriesAsync(parentId: nil)
         }
     }
 

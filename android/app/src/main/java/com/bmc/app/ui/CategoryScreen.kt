@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -39,7 +40,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.bmc.app.data.Database
 import com.bmc.app.models.Category
 import com.bmc.app.models.ContentItem
@@ -49,7 +53,8 @@ import com.bmc.app.models.ContentItem
 fun CategoryScreen(
     categoryId: Int,
     categoryName: String,
-    onSubcategoryTap: (Category) -> Unit
+    onSubcategoryTap: (Category) -> Unit,
+    onBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var subcategories by remember { mutableStateOf<List<Category>>(emptyList()) }
@@ -65,6 +70,14 @@ fun CategoryScreen(
         topBar = {
             TopAppBar(
                 title = { Text(categoryName) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "返回"
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -167,7 +180,7 @@ private fun SectionHeader(title: String) {
 }
 
 @Composable
-private fun ContentRow(
+internal fun ContentRow(
     item: ContentItem,
     onClick: () -> Unit
 ) {
@@ -179,7 +192,7 @@ private fun ContentRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top
     ) {
-        ContentThumbnail()
+        ContentThumbnail(thumbnailUrl = item.thumbnailUrl)
 
         Column(
             verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -217,24 +230,35 @@ private fun ContentRow(
     }
 }
 
-// Placeholder thumbnail — remote image loading requires Coil (to be added later)
 @Composable
-internal fun ContentThumbnail() {
-    Box(
-        modifier = Modifier
-            .size(width = 60.dp, height = 45.dp)
-            .background(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(6.dp)
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.PlayArrow,
+internal fun ContentThumbnail(thumbnailUrl: String = "") {
+    val shape = RoundedCornerShape(6.dp)
+    if (thumbnailUrl.isNotEmpty()) {
+        AsyncImage(
+            model = thumbnailUrl,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp)
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(width = 60.dp, height = 45.dp)
+                .clip(shape)
         )
+    } else {
+        Box(
+            modifier = Modifier
+                .size(width = 60.dp, height = 45.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = shape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+        }
     }
 }
 

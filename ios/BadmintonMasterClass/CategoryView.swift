@@ -57,9 +57,9 @@ struct CategoryView: View {
             SafariView(url: url)
                 .ignoresSafeArea()
         }
-        .onAppear {
-            subcategories = Database.shared.categories(parentId: category.id)
-            contents = Database.shared.contents(categoryId: category.id)
+        .task {
+            subcategories = await Database.shared.categoriesAsync(parentId: category.id)
+            contents = await Database.shared.contentsAsync(categoryId: category.id)
         }
     }
 }

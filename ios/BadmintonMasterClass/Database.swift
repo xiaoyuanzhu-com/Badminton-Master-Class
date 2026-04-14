@@ -148,6 +148,37 @@ final class Database {
         return results
     }
 
+    // MARK: - Async wrappers (off-main-thread queries)
+
+    private static let queryQueue = DispatchQueue(label: "com.bmc.db.query", qos: .userInitiated)
+
+    func categoriesAsync(parentId: Int?) async -> [Category] {
+        await withCheckedContinuation { continuation in
+            Self.queryQueue.async {
+                let result = self.categories(parentId: parentId)
+                continuation.resume(returning: result)
+            }
+        }
+    }
+
+    func contentsAsync(categoryId: Int) async -> [ContentItem] {
+        await withCheckedContinuation { continuation in
+            Self.queryQueue.async {
+                let result = self.contents(categoryId: categoryId)
+                continuation.resume(returning: result)
+            }
+        }
+    }
+
+    func searchContentsAsync(keyword: String) async -> [ContentItem] {
+        await withCheckedContinuation { continuation in
+            Self.queryQueue.async {
+                let result = self.searchContents(keyword: keyword)
+                continuation.resume(returning: result)
+            }
+        }
+    }
+
     // MARK: - Replace DB (for sync)
 
     func replaceWith(downloadedDBAt url: URL) {
