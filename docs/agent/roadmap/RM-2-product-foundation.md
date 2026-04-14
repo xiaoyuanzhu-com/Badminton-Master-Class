@@ -2,7 +2,7 @@
 
 ## Meta
 - Created: 2026-04-14
-- Status: planning
+- Status: completed
 - Depends on: RM-1 MVP Completion
 
 ## Plan
@@ -194,20 +194,82 @@ SRCH, PRSNT, DIFF (independent of ARCH, can ship in parallel)
 
 ## Execution Results
 
-## Decisions Needed
-- BUILD-2: Thumbnails — bundle as blobs in SQLite, or keep as separate files served from CDN/OSS? Blobs keep distribution simple (single file) but increase DB size. CDN is better at scale but adds infra.
-- ARCH: Separate SQLite file vs. separate tables in same file for user DB? Separate file is simpler for sync (replace content DB without touching user DB).
-- INGEST-2: Which platforms need API access vs. HTML scraping? Bilibili has a public API; others may need page scraping or yt-dlp.
+### FILE — Content-as-Code Schema
+#### ✅ FILE-1 through FILE-5: All completed
+- Confidence: 🟢 High
+- Change size: Medium (50+ files)
+- Result: commit `69f9a23`
+- 3 data models (techniques, people, content), JSON schemas, validator, 26 technique folders, 4 people, 20 content items
+
+### BUILD — SQLite Compiler
+#### ✅ BUILD-1 through BUILD-5: All completed
+- Confidence: 🟢 High
+- Change size: Medium (5 files, ~400 lines)
+- Result: commit `80a6ee0`
+- Python compiler, Makefile, v2 schema with people table, auto-copy to bundles
+
+### WEB — Read-Only Web Client
+#### ✅ WEB-1 through WEB-5: All completed
+- Confidence: 🟢 High
+- Change size: Large (15 files, major rewrite)
+- Result: commit `9788c20`
+- Stripped CRUD, added people/search/detail pages, optional auth, 26 tests
+
+### STAB — Platform Stability
+#### ✅ STAB-1 through STAB-5: All completed
+- Confidence: 🟢 High
+- Change size: Medium (7 files)
+- Result: commit `1342234`
+- Android back button, Coil, iOS async DB, iOS debounce, shared ContentRow
+
+### JUMP + SYNC2 — Deep Linking & Smart Sync
+#### ✅ JUMP-1 through JUMP-4 + SYNC2-1 through SYNC2-3: All completed
+- Confidence: 🟢 High
+- Change size: Medium (8 files)
+- Result: commit `d365e2a`
+- Deep links for 5 platforms, ETag conditional sync, deduplicated sync code
+
+### INGEST — Content Ingestion Agent
+#### ✅ INGEST-1 through INGEST-7: All completed
+- Confidence: 🟢 High
+- Change size: Medium (3 files, ~580 lines)
+- Result: commit `e3db80c`
+- Ingestion script, platform detection, thumbnail download, slug generation, Claude Code skill
+
+### P2/P3 — Deferred to RM-3
+#### ⏭️ ARCH, FAV, SRCH, PRSNT, HIST, DIFF: Deferred
+- Reason: Scope was right-sized to P0+P1. User features deferred to RM-3 with revised approach (learning paths + JSON state instead of two-DB architecture).
+
+## Decisions Made
+- **Thumbnails**: Keep as repo files, thumbnail_url empty in DB for now. CDN pipeline in RM-3.
+- **User state**: JSON file approach instead of two-DB architecture (simpler, sufficient at current scale). Decided during product research.
+- **Ingestion**: HTML scraping with og: meta tags + platform-specific patterns. No API keys needed.
 
 ## E2E & User Testing
+- 26 Go tests pass, validator passes, compiler produces correct DB
+- 0 bugs found in E2E
+- All 4 RM-1 critical issues resolved
+- 12 new findings: Android debounce missing, Android main-thread DB, deep link short URL gaps
+- Full report: docs/agent/epics/UX-user-testing-rm2.md
 
 ## Product Research
+- Learning paths are the highest-impact next feature (not favorites)
+- JSON user state simpler than two-DB architecture
+- Content growth (20 → 100+ items) is the bottleneck
+- Full report: docs/agent/epics/PROD-research-rm3.md
 
 ## Tech Audit
+- 4 major findings (all scoped in RM-3): no path tables, Android main-thread DB, Android debounce, no user state layer
+- 14 minor findings
+- Full report: docs/agent/epics/TECH-audit-rm2.md
 
 ## Executive Review
+- Review slide: docs/agent/roadmap/RM-2-review.html
 
 ## Next Roadmap
-Candidates for RM-3: Learning Paths, Curated Playlists, Onboarding Flow, Share & Invite, FTS5 Search, Content Freshness Notifications, Bulk Import Tool.
+- Proposed: docs/agent/roadmap/RM-3-learning-paths.md
+- 49 tasks across 8 EPICs (FIX, THUMB, PATH, STATE, GROW, SRCH, PRSNT, ONBOARD, SHARE, WEBPOL)
+- Key themes: learning paths, user state, content growth, bug fixes
 
 ## Handoff
+N/A — roadmap completed across two sessions.
