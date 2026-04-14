@@ -46,6 +46,26 @@ CREATE TABLE IF NOT EXISTS contents (
 CREATE INDEX IF NOT EXISTS idx_contents_category ON contents(category_id);
 `,
 	},
+	{
+		Version:     2,
+		Description: "add people table, person_id/difficulty/duration/editor_notes to contents",
+		SQL: `
+CREATE TABLE IF NOT EXISTS people (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    bio TEXT NOT NULL DEFAULT '',
+    platforms_json TEXT NOT NULL DEFAULT '{}'
+);
+
+ALTER TABLE contents ADD COLUMN person_id INTEGER REFERENCES people(id);
+ALTER TABLE contents ADD COLUMN difficulty TEXT NOT NULL DEFAULT '';
+ALTER TABLE contents ADD COLUMN duration TEXT NOT NULL DEFAULT '';
+ALTER TABLE contents ADD COLUMN editor_notes TEXT NOT NULL DEFAULT '';
+
+CREATE INDEX IF NOT EXISTS idx_contents_person ON contents(person_id);
+`,
+	},
 }
 
 // ensureSchemaVersionTable creates the schema_version table if it does not exist.
