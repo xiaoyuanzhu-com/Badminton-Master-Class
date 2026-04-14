@@ -41,8 +41,12 @@ struct CategoryView: View {
             }
 
             if subcategories.isEmpty && contents.isEmpty {
-                Text("暂无内容")
-                    .foregroundStyle(.secondary)
+                ContentUnavailableView(
+                    "暂无内容",
+                    systemImage: "folder",
+                    description: Text("该分类下还没有内容")
+                )
+                .listRowSeparator(.hidden)
             }
         }
         .navigationTitle(category.name)

@@ -42,15 +42,25 @@ struct HomeView: View {
     }
 
     private var categoriesList: some View {
-        List(categories) { category in
-            NavigationLink(value: category) {
-                HStack(spacing: 12) {
-                    Text(category.icon)
-                        .font(.title2)
-                    Text(category.name)
-                        .font(.body)
+        Group {
+            if categories.isEmpty {
+                ContentUnavailableView(
+                    "暂无内容",
+                    systemImage: "tray",
+                    description: Text("下拉刷新获取最新数据")
+                )
+            } else {
+                List(categories) { category in
+                    NavigationLink(value: category) {
+                        HStack(spacing: 12) {
+                            Text(category.icon)
+                                .font(.title2)
+                            Text(category.name)
+                                .font(.body)
+                        }
+                        .padding(.vertical, 4)
+                    }
                 }
-                .padding(.vertical, 4)
             }
         }
         .refreshable {
