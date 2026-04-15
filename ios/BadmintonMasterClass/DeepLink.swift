@@ -84,16 +84,37 @@ enum DeepLink {
     }
 
     /// xiaohongshu.com/explore/xxx -> xhsdiscover://item/xxx
+    /// xiaohongshu.com/discovery/item/xxx -> xhsdiscover://item/xxx
+    /// xhslink.com/xxx -> xhsdiscover://item/xxx (short URL)
     private static func xiaohongshuDeepLink(_ urlString: String) -> URL? {
         guard let url = URL(string: urlString),
-              let host = url.host,
-              host.contains("xiaohongshu.com"),
-              url.pathComponents.count >= 3,
-              url.pathComponents[1] == "explore" else {
+              let host = url.host else {
             return nil
         }
-        let noteId = url.pathComponents[2]
-        return URL(string: "xhsdiscover://item/\(noteId)")
+
+        // xhslink.com short URLs — open directly; the app's URL scheme handles resolution
+        if host.contains("xhslink.com"), url.pathComponents.count >= 2 {
+            let shortCode = url.pathComponents[1]
+            return URL(string: "xhsdiscover://item/\(shortCode)")
+        }
+
+        guard host.contains("xiaohongshu.com") else { return nil }
+
+        // /explore/xxx
+        if url.pathComponents.count >= 3, url.pathComponents[1] == "explore" {
+            let noteId = url.pathComponents[2]
+            return URL(string: "xhsdiscover://item/\(noteId)")
+        }
+
+        // /discovery/item/xxx
+        if url.pathComponents.count >= 4,
+           url.pathComponents[1] == "discovery",
+           url.pathComponents[2] == "item" {
+            let noteId = url.pathComponents[3]
+            return URL(string: "xhsdiscover://item/\(noteId)")
+        }
+
+        return nil
     }
 
     /// douyin.com/video/xxx -> snssdk1128://feed?id=xxx

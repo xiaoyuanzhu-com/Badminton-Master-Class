@@ -78,14 +78,34 @@ object DeepLink {
         return null
     }
 
-    /** xiaohongshu.com/explore/xxx -> xhsdiscover://item/xxx */
+    /**
+     * xiaohongshu.com/explore/xxx -> xhsdiscover://item/xxx
+     * xiaohongshu.com/discovery/item/xxx -> xhsdiscover://item/xxx
+     * xhslink.com/xxx -> xhsdiscover://item/xxx (short URL)
+     */
     private fun xiaohongshuDeepLink(urlString: String): Uri? {
         val uri = Uri.parse(urlString)
         val host = uri.host ?: return null
-        if (!host.contains("xiaohongshu.com")) return null
         val segments = uri.pathSegments
-        if (segments.size < 2 || segments[0] != "explore") return null
-        return Uri.parse("xhsdiscover://item/${segments[1]}")
+
+        // xhslink.com short URLs — open directly; the app's URL scheme handles resolution
+        if (host.contains("xhslink.com") && segments.isNotEmpty()) {
+            return Uri.parse("xhsdiscover://item/${segments[0]}")
+        }
+
+        if (!host.contains("xiaohongshu.com")) return null
+
+        // /explore/xxx
+        if (segments.size >= 2 && segments[0] == "explore") {
+            return Uri.parse("xhsdiscover://item/${segments[1]}")
+        }
+
+        // /discovery/item/xxx
+        if (segments.size >= 3 && segments[0] == "discovery" && segments[1] == "item") {
+            return Uri.parse("xhsdiscover://item/${segments[2]}")
+        }
+
+        return null
     }
 
     /** douyin.com/video/xxx -> snssdk1128://feed?id=xxx */
