@@ -2,3 +2,4 @@
 !ios/BadmintonMasterClass/Resources/bmc.db
 !android/app/src/main/assets/bmc.db
 __pycache__/
+.worktrees
