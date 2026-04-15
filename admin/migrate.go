@@ -66,6 +66,38 @@ ALTER TABLE contents ADD COLUMN editor_notes TEXT NOT NULL DEFAULT '';
 CREATE INDEX IF NOT EXISTS idx_contents_person ON contents(person_id);
 `,
 	},
+	{
+		Version:     3,
+		Description: "add learning_paths, path_steps, path_step_contents tables",
+		SQL: `
+CREATE TABLE IF NOT EXISTS learning_paths (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    summary TEXT NOT NULL DEFAULT '',
+    difficulty TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS path_steps (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    path_id INTEGER NOT NULL REFERENCES learning_paths(id),
+    step_order INTEGER NOT NULL DEFAULT 0,
+    day INTEGER,
+    title TEXT NOT NULL,
+    note TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS path_step_contents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    step_id INTEGER NOT NULL REFERENCES path_steps(id),
+    content_id INTEGER NOT NULL REFERENCES contents(id),
+    sort_order INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_path_steps_path ON path_steps(path_id);
+CREATE INDEX IF NOT EXISTS idx_path_step_contents_step ON path_step_contents(step_id);
+`,
+	},
 }
 
 // ensureSchemaVersionTable creates the schema_version table if it does not exist.

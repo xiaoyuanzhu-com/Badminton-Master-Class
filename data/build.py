@@ -25,12 +25,13 @@ ROOT = Path(__file__).resolve().parent.parent  # project root
 CONTENT_DIR = ROOT / "data" / "content"
 TECHNIQUES_DIR = CONTENT_DIR / "techniques"
 PEOPLE_DIR = CONTENT_DIR / "people"
+PATHS_DIR = CONTENT_DIR / "paths"
 DB_PATH = ROOT / "data" / "bmc.db"
 
 IOS_BUNDLE = ROOT / "ios" / "BadmintonMasterClass" / "Resources" / "bmc.db"
 ANDROID_BUNDLE = ROOT / "android" / "app" / "src" / "main" / "assets" / "bmc.db"
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 SCHEMA_SQL = """\
 CREATE TABLE categories (
@@ -69,6 +70,33 @@ CREATE TABLE contents (
 
 CREATE INDEX idx_contents_category ON contents(category_id);
 CREATE INDEX idx_contents_person ON contents(person_id);
+
+CREATE TABLE learning_paths (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    summary TEXT NOT NULL DEFAULT '',
+    difficulty TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE path_steps (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    path_id INTEGER NOT NULL REFERENCES learning_paths(id),
+    step_order INTEGER NOT NULL DEFAULT 0,
+    day INTEGER,
+    title TEXT NOT NULL,
+    note TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE path_step_contents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    step_id INTEGER NOT NULL REFERENCES path_steps(id),
+    content_id INTEGER NOT NULL REFERENCES contents(id),
+    sort_order INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_path_steps_path ON path_steps(path_id);
+CREATE INDEX idx_path_step_contents_step ON path_step_contents(step_id);
 
 CREATE TABLE schema_version (
     version INTEGER NOT NULL
@@ -203,6 +231,74 @@ def build_contents(
     return content_count
 
 
+def build_content_slug_map(cur: sqlite3.Cursor) -> dict[str, int]:
+    """Build a mapping of content file slug -> contents.id from the DB."""
+    slug_map: dict[str, int] = {}
+    for dirpath, _dirnames, filenames in os.walk(TECHNIQUES_DIR):
+        dirpath = Path(dirpath)
+        for fname in sorted(filenames):
+            if fname.endswith(".json") and fname != "_technique.json":
+                slug = Path(fname).stem
+                # Look up the content by title (slug is the filename stem)
+                # We need to match by source_url or title; safer to query by
+                # iterating what we just inserted. Instead, collect during insert.
+                pass
+    # Query all contents and map by scanning technique files for slug->title
+    # Simpler approach: scan technique dirs and match slug to DB row by source_url
+    # Actually, the simplest: re-scan files and look up by source_url.
+    slug_map = {}
+    for dirpath, _dirnames, filenames in os.walk(TECHNIQUES_DIR):
+        dirpath_p = Path(dirpath)
+        for fname in sorted(filenames):
+            if fname.endswith(".json") and fname != "_technique.json":
+                slug = Path(fname).stem
+                fpath = dirpath_p / fname
+                data = load_json(fpath)
+                source_url = data.get("source_url", "")
+                row = cur.execute(
+                    "SELECT id FROM contents WHERE source_url = ?", (source_url,)
+                ).fetchone()
+                if row:
+                    slug_map[slug] = row[0]
+    return slug_map
+
+
+def build_paths(cur: sqlite3.Cursor, content_slug_map: dict[str, int]) -> int:
+    """Read path JSON files and insert into learning_paths, path_steps, path_step_contents."""
+    path_count = 0
+    if not PATHS_DIR.is_dir():
+        return path_count
+
+    for sort_order, f in enumerate(sorted(PATHS_DIR.iterdir())):
+        if f.suffix != ".json":
+            continue
+        data = load_json(f)
+        path_count += 1
+
+        cur.execute(
+            "INSERT INTO learning_paths (title, summary, difficulty, sort_order) VALUES (?, ?, ?, ?)",
+            (data["title"], data.get("summary", ""), data.get("difficulty", ""), sort_order),
+        )
+        path_id = cur.lastrowid
+
+        for step_order, step in enumerate(data.get("steps", [])):
+            cur.execute(
+                "INSERT INTO path_steps (path_id, step_order, day, title, note) VALUES (?, ?, ?, ?, ?)",
+                (path_id, step_order, step.get("day"), step["title"], step.get("note", "")),
+            )
+            step_id = cur.lastrowid
+
+            for content_sort, slug in enumerate(step.get("content_slugs", [])):
+                content_id = content_slug_map.get(slug)
+                if content_id is not None:
+                    cur.execute(
+                        "INSERT INTO path_step_contents (step_id, content_id, sort_order) VALUES (?, ?, ?)",
+                        (step_id, content_id, content_sort),
+                    )
+
+    return path_count
+
+
 def compile_db():
     """Main compilation: create bmc.db from content files."""
     # Remove existing DB
@@ -225,6 +321,8 @@ def compile_db():
     people_map = build_people(cur)
     cat_map = build_categories(cur)
     content_count = build_contents(cur, cat_map, people_map)
+    content_slug_map = build_content_slug_map(cur)
+    path_count = build_paths(cur, content_slug_map)
 
     conn.commit()
 
@@ -233,11 +331,12 @@ def compile_db():
     print(f"  Categories: {len(cat_map)}")
     print(f"  People:     {len(people_map)}")
     print(f"  Contents:   {content_count}")
+    print(f"  Paths:      {path_count}")
     print(f"  Schema:     v{SCHEMA_VERSION}")
     print(f"  Output:     {DB_PATH}")
 
     conn.close()
-    return len(cat_map), len(people_map), content_count
+    return len(cat_map), len(people_map), content_count, path_count
 
 
 def copy_to_bundles():
@@ -308,7 +407,7 @@ def main():
 
     # Step 2: Compile
     print("\n=== Compiling bmc.db ===")
-    cat_count, people_count, content_count = compile_db()
+    cat_count, people_count, content_count, path_count = compile_db()
 
     # Step 3: Copy to bundles
     print("\n=== Copying to app bundles ===")

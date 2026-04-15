@@ -66,7 +66,7 @@ func TestMigrateDB_FreshDB(t *testing.T) {
 	}
 
 	// Verify application tables exist.
-	for _, table := range []string{"categories", "contents", "people", "schema_version"} {
+	for _, table := range []string{"categories", "contents", "people", "learning_paths", "path_steps", "path_step_contents", "schema_version"} {
 		var name string
 		err := db.QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name=?", table).Scan(&name)
 		if err != nil {
@@ -75,7 +75,7 @@ func TestMigrateDB_FreshDB(t *testing.T) {
 	}
 
 	// Verify indexes exist.
-	for _, idx := range []string{"idx_contents_category", "idx_contents_person"} {
+	for _, idx := range []string{"idx_contents_category", "idx_contents_person", "idx_path_steps_path", "idx_path_step_contents_step"} {
 		var idxName string
 		err = db.QueryRow("SELECT name FROM sqlite_master WHERE type='index' AND name=?", idx).Scan(&idxName)
 		if err != nil {

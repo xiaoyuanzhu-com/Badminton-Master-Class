@@ -18,6 +18,7 @@ CONTENT_DIR = Path(__file__).parent
 SCHEMAS_DIR = CONTENT_DIR / "schemas"
 TECHNIQUES_DIR = CONTENT_DIR / "techniques"
 PEOPLE_DIR = CONTENT_DIR / "people"
+PATHS_DIR = CONTENT_DIR / "paths"
 
 
 def load_json(path: Path) -> dict | None:
@@ -91,6 +92,18 @@ def collect_people_slugs() -> set[str]:
     return slugs
 
 
+def collect_content_slugs() -> set[str]:
+    """Collect all content slugs from the techniques directory."""
+    slugs = set()
+    if not TECHNIQUES_DIR.is_dir():
+        return slugs
+    for dirpath, _dirnames, filenames in os.walk(TECHNIQUES_DIR):
+        for fname in filenames:
+            if fname.endswith(".json") and fname != "_technique.json":
+                slugs.add(Path(fname).stem)
+    return slugs
+
+
 def main() -> int:
     errors: list[str] = []
     warnings: list[str] = []
@@ -99,6 +112,7 @@ def main() -> int:
     technique_schema = load_schema("technique.schema.json")
     person_schema = load_schema("person.schema.json")
     content_schema = load_schema("content.schema.json")
+    path_schema = load_schema("path.schema.json")
 
     if not technique_schema:
         errors.append("Cannot load technique.schema.json")
@@ -106,6 +120,8 @@ def main() -> int:
         errors.append("Cannot load person.schema.json")
     if not content_schema:
         errors.append("Cannot load content.schema.json")
+    if not path_schema:
+        errors.append("Cannot load path.schema.json")
 
     if errors:
         for e in errors:
@@ -185,8 +201,37 @@ def main() -> int:
                     else:
                         source_urls[url] = str(rel_path)
 
+    # Validate path files
+    path_count = 0
+    content_slugs = collect_content_slugs()
+
+    if PATHS_DIR.is_dir():
+        for f in sorted(PATHS_DIR.iterdir()):
+            if f.suffix != ".json":
+                continue
+            path_count += 1
+            rel_path = f.relative_to(CONTENT_DIR)
+            data = load_json(f)
+            if data is None:
+                errors.append(f"  {rel_path}: invalid JSON")
+                continue
+
+            errors.extend(validate_against_schema(data, path_schema, str(rel_path)))
+
+            # Check content_slugs references and duplicates within the path
+            seen_slugs: set[str] = set()
+            for i, step in enumerate(data.get("steps", [])):
+                for slug in step.get("content_slugs", []):
+                    if slug not in content_slugs:
+                        errors.append(
+                            f"  {rel_path}: step {i} references unknown content slug '{slug}'")
+                    if slug in seen_slugs:
+                        errors.append(
+                            f"  {rel_path}: step {i} has duplicate content slug '{slug}'")
+                    seen_slugs.add(slug)
+
     # Summary
-    print(f"Validated: {technique_count} techniques, {people_count} people, {content_count} content items")
+    print(f"Validated: {technique_count} techniques, {people_count} people, {content_count} content items, {path_count} paths")
 
     if not HAS_JSONSCHEMA:
         warnings.append("jsonschema not installed — using basic manual validation")
