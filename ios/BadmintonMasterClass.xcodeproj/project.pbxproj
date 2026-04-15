@@ -17,6 +17,7 @@
 		000000000000000000000010 /* bmc.db in Resources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000000F /* bmc.db */; };
 		000000000000000000000022 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000021 /* DeepLink.swift */; };
 		000000000000000000000024 /* SyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000023 /* SyncManager.swift */; };
+		000000000000000000000026 /* PathDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000025 /* PathDetailView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +32,7 @@
 		000000000000000000000015 /* BadmintonMasterClass.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "BadmintonMasterClass.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000000000021 /* DeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DeepLink.swift"; sourceTree = "<group>"; };
 		000000000000000000000023 /* SyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SyncManager.swift"; sourceTree = "<group>"; };
+		000000000000000000000025 /* PathDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PathDetailView.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -64,6 +66,7 @@
 				00000000000000000000000D /* DataSync.swift */,
 				000000000000000000000021 /* DeepLink.swift */,
 				000000000000000000000023 /* SyncManager.swift */,
+				000000000000000000000025 /* PathDetailView.swift */,
 				000000000000000000000011 /* Resources */,
 			);
 			path = BadmintonMasterClass;
@@ -158,6 +161,7 @@
 				00000000000000000000000E /* DataSync.swift in Sources */,
 				000000000000000000000022 /* DeepLink.swift in Sources */,
 				000000000000000000000024 /* SyncManager.swift in Sources */,
+				000000000000000000000026 /* PathDetailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

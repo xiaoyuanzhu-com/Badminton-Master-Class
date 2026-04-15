@@ -113,6 +113,101 @@ final class Database {
         return results
     }
 
+    func learningPaths() -> [LearningPath] {
+        var results: [LearningPath] = []
+        var stmt: OpaquePointer?
+        let sql = """
+            SELECT lp.id, lp.title, lp.summary, lp.difficulty, lp.sort_order,
+                   (SELECT COUNT(*) FROM path_steps WHERE path_id = lp.id) AS step_count
+            FROM learning_paths lp
+            ORDER BY lp.sort_order
+            """
+
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return results }
+
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            let id = Int(sqlite3_column_int(stmt, 0))
+            let title = String(cString: sqlite3_column_text(stmt, 1))
+            let summary = String(cString: sqlite3_column_text(stmt, 2))
+            let difficulty = String(cString: sqlite3_column_text(stmt, 3))
+            let sortOrder = Int(sqlite3_column_int(stmt, 4))
+            let stepCount = Int(sqlite3_column_int(stmt, 5))
+
+            results.append(LearningPath(
+                id: id, title: title, summary: summary,
+                difficulty: difficulty, sortOrder: sortOrder,
+                stepCount: stepCount
+            ))
+        }
+
+        sqlite3_finalize(stmt)
+        return results
+    }
+
+    func pathSteps(pathId: Int) -> [PathStep] {
+        var results: [PathStep] = []
+        var stmt: OpaquePointer?
+        let sql = "SELECT id, path_id, step_order, day, title, note FROM path_steps WHERE path_id = ? ORDER BY step_order"
+
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return results }
+        sqlite3_bind_int(stmt, 1, Int32(pathId))
+
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            let id = Int(sqlite3_column_int(stmt, 0))
+            let pathId = Int(sqlite3_column_int(stmt, 1))
+            let stepOrder = Int(sqlite3_column_int(stmt, 2))
+            let day = sqlite3_column_text(stmt, 3).map { String(cString: $0) } ?? ""
+            let title = String(cString: sqlite3_column_text(stmt, 4))
+            let note = sqlite3_column_text(stmt, 5).map { String(cString: $0) } ?? ""
+
+            results.append(PathStep(
+                id: id, pathId: pathId, stepOrder: stepOrder,
+                day: day, title: title, note: note
+            ))
+        }
+
+        sqlite3_finalize(stmt)
+        return results
+    }
+
+    func pathStepContents(stepId: Int) -> [ContentItem] {
+        var results: [ContentItem] = []
+        var stmt: OpaquePointer?
+        let sql = """
+            SELECT c.id, c.title, c.summary, c.thumbnail_url, c.source_url,
+                   c.source_platform, c.author_name, c.category_id, c.sort_order
+            FROM contents c
+            JOIN path_step_contents psc ON psc.content_id = c.id
+            WHERE psc.step_id = ?
+            ORDER BY psc.sort_order
+            """
+
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return results }
+        sqlite3_bind_int(stmt, 1, Int32(stepId))
+
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            let id = Int(sqlite3_column_int(stmt, 0))
+            let title = String(cString: sqlite3_column_text(stmt, 1))
+            let summary = String(cString: sqlite3_column_text(stmt, 2))
+            let thumbnailUrl = String(cString: sqlite3_column_text(stmt, 3))
+            let sourceUrl = String(cString: sqlite3_column_text(stmt, 4))
+            let sourcePlatform = String(cString: sqlite3_column_text(stmt, 5))
+            let authorName = String(cString: sqlite3_column_text(stmt, 6))
+            let categoryId = Int(sqlite3_column_int(stmt, 7))
+            let sortOrder = Int(sqlite3_column_int(stmt, 8))
+
+            results.append(ContentItem(
+                id: id, title: title, summary: summary,
+                thumbnailUrl: thumbnailUrl, sourceUrl: sourceUrl,
+                sourcePlatform: sourcePlatform, authorName: authorName,
+                categoryId: categoryId, sortOrder: sortOrder
+            ))
+        }
+
+        sqlite3_finalize(stmt)
+        return results
+    }
+
     func searchContents(keyword: String) -> [ContentItem] {
         var results: [ContentItem] = []
         guard !keyword.trimmingCharacters(in: .whitespaces).isEmpty else { return results }
@@ -174,6 +269,33 @@ final class Database {
         await withCheckedContinuation { continuation in
             Self.queryQueue.async {
                 let result = self.searchContents(keyword: keyword)
+                continuation.resume(returning: result)
+            }
+        }
+    }
+
+    func learningPathsAsync() async -> [LearningPath] {
+        await withCheckedContinuation { continuation in
+            Self.queryQueue.async {
+                let result = self.learningPaths()
+                continuation.resume(returning: result)
+            }
+        }
+    }
+
+    func pathStepsAsync(pathId: Int) async -> [PathStep] {
+        await withCheckedContinuation { continuation in
+            Self.queryQueue.async {
+                let result = self.pathSteps(pathId: pathId)
+                continuation.resume(returning: result)
+            }
+        }
+    }
+
+    func pathStepContentsAsync(stepId: Int) async -> [ContentItem] {
+        await withCheckedContinuation { continuation in
+            Self.queryQueue.async {
+                let result = self.pathStepContents(stepId: stepId)
                 continuation.resume(returning: result)
             }
         }

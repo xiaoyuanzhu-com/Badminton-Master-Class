@@ -19,3 +19,21 @@ struct ContentItem: Identifiable {
     let categoryId: Int
     let sortOrder: Int
 }
+
+struct LearningPath: Identifiable, Hashable {
+    let id: Int
+    let title: String
+    let summary: String
+    let difficulty: String
+    let sortOrder: Int
+    var stepCount: Int = 0
+}
+
+struct PathStep: Identifiable {
+    let id: Int
+    let pathId: Int
+    let stepOrder: Int
+    let day: String
+    let title: String
+    let note: String
+}
