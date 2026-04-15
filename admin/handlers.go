@@ -86,6 +86,22 @@ var funcMap = template.FuncMap{
 			return "其他"
 		}
 	},
+	"platformIcon": func(p string) string {
+		switch p {
+		case "bilibili":
+			return "📺"
+		case "xiaohongshu":
+			return "📕"
+		case "douyin":
+			return "🎵"
+		case "wechat":
+			return "💬"
+		case "youtube":
+			return "▶️"
+		default:
+			return "🔗"
+		}
+	},
 	"difficultyLabel": func(d string) string {
 		switch d {
 		case "beginner":
