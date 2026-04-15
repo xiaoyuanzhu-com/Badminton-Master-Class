@@ -4,7 +4,7 @@
   "title": "Content",
   "description": "A tutorial or video content item. Lives alongside its technique's _technique.json.",
   "type": "object",
-  "required": ["title", "source_url", "source_platform", "person"],
+  "required": ["title", "source_url", "source_platform"],
   "additionalProperties": false,
   "properties": {
     "title": {
