@@ -55,6 +55,8 @@ func setupRoutes(db *sql.DB) *http.ServeMux {
 	mux.HandleFunc("/categories", categoriesHandler(db))
 	mux.HandleFunc("/contents", contentsHandler(db))
 	mux.HandleFunc("/contents/", contentDetailHandler(db))
+	mux.HandleFunc("/paths", pathsListHandler(db))
+	mux.HandleFunc("/paths/", pathDetailHandler(db))
 	mux.HandleFunc("/people", peopleListHandler(db))
 	mux.HandleFunc("/people/", personDetailHandler(db))
 	mux.HandleFunc("/search", searchHandler(db))

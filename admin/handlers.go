@@ -10,6 +10,25 @@ import (
 
 // ── Models ──────────────────────────────────────────────────────────
 
+type LearningPath struct {
+	ID         int
+	Title      string
+	Summary    string
+	Difficulty string
+	SortOrder  int
+	StepCount  int
+}
+
+type PathStep struct {
+	ID        int
+	PathID    int
+	StepOrder int
+	Day       sql.NullInt64
+	Title     string
+	Note      string
+	Contents  []Content
+}
+
 type Category struct {
 	ID           int
 	Name         string
@@ -87,7 +106,7 @@ func parseTemplate(name string) (*template.Template, error) {
 
 // ── Handlers ────────────────────────────────────────────────────────
 
-// homeHandler shows the home page with category hierarchy.
+// homeHandler shows the home page with category hierarchy and learning paths.
 func homeHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -134,6 +153,18 @@ func homeHandler(db *sql.DB) http.HandlerFunc {
 			topLevel[i].Children = childMap[int64(topLevel[i].ID)]
 		}
 
+		// Fetch learning paths
+		paths, err := queryLearningPaths(db)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		data := struct {
+			Categories    []Category
+			LearningPaths []LearningPath
+		}{topLevel, paths}
+
 		tmpl, err := parseTemplate("home.html")
 		if err != nil {
 			w.Header().Set("Content-Type", "text/plain")
@@ -143,7 +174,162 @@ func homeHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		tmpl.Execute(w, topLevel)
+		tmpl.Execute(w, data)
+	}
+}
+
+// queryLearningPaths returns all learning paths with step counts.
+func queryLearningPaths(db *sql.DB) ([]LearningPath, error) {
+	rows, err := db.Query(`
+		SELECT lp.id, lp.title, lp.summary, lp.difficulty, lp.sort_order,
+		       (SELECT COUNT(*) FROM path_steps WHERE path_id = lp.id) AS step_count
+		FROM learning_paths lp
+		ORDER BY lp.sort_order`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var paths []LearningPath
+	for rows.Next() {
+		var p LearningPath
+		if err := rows.Scan(&p.ID, &p.Title, &p.Summary, &p.Difficulty, &p.SortOrder, &p.StepCount); err != nil {
+			return nil, err
+		}
+		paths = append(paths, p)
+	}
+	return paths, rows.Err()
+}
+
+// pathsListHandler shows all learning paths.
+func pathsListHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		paths, err := queryLearningPaths(db)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		tmpl, err := parseTemplate("paths.html")
+		if err != nil {
+			w.Header().Set("Content-Type", "text/plain")
+			for _, p := range paths {
+				w.Write([]byte("Path: " + p.Title + "\n"))
+			}
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		tmpl.Execute(w, paths)
+	}
+}
+
+// pathDetailHandler shows a single learning path with its steps and content items.
+func pathDetailHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		idStr := strings.TrimPrefix(r.URL.Path, "/paths/")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+
+		var path LearningPath
+		err = db.QueryRow(`
+			SELECT id, title, summary, difficulty, sort_order
+			FROM learning_paths WHERE id = ?`, id).
+			Scan(&path.ID, &path.Title, &path.Summary, &path.Difficulty, &path.SortOrder)
+		if err == sql.ErrNoRows {
+			http.NotFound(w, r)
+			return
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Load steps
+		stepRows, err := db.Query(`
+			SELECT id, path_id, step_order, day, title, note
+			FROM path_steps
+			WHERE path_id = ?
+			ORDER BY step_order`, id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer stepRows.Close()
+
+		var steps []PathStep
+		for stepRows.Next() {
+			var s PathStep
+			if err := stepRows.Scan(&s.ID, &s.PathID, &s.StepOrder, &s.Day, &s.Title, &s.Note); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			steps = append(steps, s)
+		}
+		if err := stepRows.Err(); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Load contents for each step
+		for i := range steps {
+			contentRows, err := db.Query(`
+				SELECT c.id, c.title, c.summary, c.thumbnail_url, c.source_url,
+				       c.source_platform, c.author_name, c.person_id,
+				       COALESCE(p.name, c.author_name) AS person_name,
+				       c.difficulty, c.duration, c.category_id,
+				       COALESCE(cat.name, ''), c.sort_order
+				FROM path_step_contents psc
+				JOIN contents c ON psc.content_id = c.id
+				LEFT JOIN categories cat ON c.category_id = cat.id
+				LEFT JOIN people p ON c.person_id = p.id
+				WHERE psc.step_id = ?
+				ORDER BY psc.sort_order`, steps[i].ID)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			for contentRows.Next() {
+				var ct Content
+				if err := contentRows.Scan(&ct.ID, &ct.Title, &ct.Summary, &ct.ThumbnailURL,
+					&ct.SourceURL, &ct.SourcePlatform, &ct.AuthorName, &ct.PersonID,
+					&ct.PersonName, &ct.Difficulty, &ct.Duration,
+					&ct.CategoryID, &ct.CategoryName, &ct.SortOrder); err != nil {
+					contentRows.Close()
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				steps[i].Contents = append(steps[i].Contents, ct)
+			}
+			contentRows.Close()
+		}
+
+		data := struct {
+			Path  LearningPath
+			Steps []PathStep
+		}{path, steps}
+
+		tmpl, err := parseTemplate("path_detail.html")
+		if err != nil {
+			w.Header().Set("Content-Type", "text/plain")
+			w.Write([]byte("Path: " + path.Title + "\n"))
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		tmpl.Execute(w, data)
 	}
 }
 

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学习路径 - 羽球大师课</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, system-ui, "Segoe UI", sans-serif; background: #fafafa; color: #111; }
+        header { background: #111; color: white; padding: 16px 0; }
+        .container { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+        nav { display: flex; align-items: center; gap: 24px; }
+        nav .logo { font-size: 20px; font-weight: 700; text-decoration: none; color: white; }
+        nav a { color: rgba(255,255,255,0.85); text-decoration: none; font-size: 15px; }
+        nav a:hover { color: white; }
+        .search-form { margin-left: auto; }
+        .search-form input { padding: 6px 12px; border: none; border-radius: 4px; font-size: 14px; width: 200px; background: #f5f5f5; }
+        main { padding: 32px 0; }
+        .breadcrumb { font-size: 14px; color: #707072; margin-bottom: 16px; }
+        .breadcrumb a { color: #111; text-decoration: none; font-weight: 500; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        h1 { font-size: 28px; margin-bottom: 24px; color: #111; font-weight: 700; }
+        .path-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .path-card { background: white; border-radius: 12px; padding: 24px; transition: box-shadow 0.2s; border: 1px solid #f5f5f5; text-decoration: none; display: block; }
+        .path-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .path-card h2 { font-size: 17px; font-weight: 600; color: #111; margin-bottom: 8px; }
+        .path-card .summary { color: #707072; font-size: 14px; line-height: 1.6; margin-bottom: 12px; }
+        .path-card .badges { display: flex; gap: 8px; flex-wrap: wrap; }
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 30px; font-size: 12px; font-weight: 500; }
+        .badge-difficulty { background: #f5f5f5; color: #111; }
+        .badge-steps { background: #f5f5f5; color: #707072; }
+        .empty { text-align: center; padding: 48px 0; color: #707072; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <a href="/" class="logo">羽球大师课</a>
+                <a href="/categories">分类</a>
+                <a href="/contents">内容</a>
+                <a href="/paths">学习路径</a>
+                <a href="/people">作者</a>
+                <form class="search-form" action="/search" method="GET">
+                    <input type="text" name="q" placeholder="搜索内容、作者...">
+                </form>
+            </nav>
+        </div>
+    </header>
+    <main>
+        <div class="container">
+            <div class="breadcrumb"><a href="/">首页</a> &rsaquo; 学习路径</div>
+            <h1>学习路径</h1>
+            {{if .}}
+            <div class="path-grid">
+                {{range .}}
+                <a class="path-card" href="/paths/{{.ID}}">
+                    <h2>{{.Title}}</h2>
+                    {{if .Summary}}<div class="summary">{{.Summary}}</div>{{end}}
+                    <div class="badges">
+                        {{if .Difficulty}}<span class="badge badge-difficulty">{{difficultyLabel .Difficulty}}</span>{{end}}
+                        <span class="badge badge-steps">{{.StepCount}} 个步骤</span>
+                    </div>
+                </a>
+                {{end}}
+            </div>
+            {{else}}
+            <div class="empty">暂无学习路径</div>
+            {{end}}
+        </div>
+    </main>
+</body>
+</html>

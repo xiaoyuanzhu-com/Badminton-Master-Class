@@ -426,6 +426,149 @@ func TestBasicAuth_WrongCredentials(t *testing.T) {
 	}
 }
 
+// insertTestPathData adds a learning path with steps and content links.
+func insertTestPathData(t *testing.T, db *sql.DB) {
+	t.Helper()
+	insertTestData(t, db) // ensures categories, people, contents exist
+	stmts := []string{
+		"INSERT INTO learning_paths (id, title, summary, difficulty, sort_order) VALUES (1, 'Beginner Path', 'Start here', 'beginner', 1)",
+		"INSERT INTO learning_paths (id, title, summary, difficulty, sort_order) VALUES (2, 'Advanced Path', 'Level up', 'advanced', 2)",
+		"INSERT INTO path_steps (id, path_id, step_order, day, title, note) VALUES (1, 1, 1, 1, 'Learn Grip', 'Focus on technique')",
+		"INSERT INTO path_steps (id, path_id, step_order, day, title, note) VALUES (2, 1, 2, 2, 'Basic Smash', '')",
+		"INSERT INTO path_step_contents (id, step_id, content_id, sort_order) VALUES (1, 1, 1, 1)",
+		"INSERT INTO path_step_contents (id, step_id, content_id, sort_order) VALUES (2, 2, 2, 1)",
+	}
+	for _, s := range stmts {
+		if _, err := db.Exec(s); err != nil {
+			t.Fatalf("insert path data: %v\nSQL: %s", err, s)
+		}
+	}
+}
+
+// ── Learning Paths list ─────────────────────────────────────────────
+
+func TestPathsList(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+	insertTestPathData(t, db)
+
+	req := httptest.NewRequest(http.MethodGet, "/paths", nil)
+	w := httptest.NewRecorder()
+	pathsListHandler(db).ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "Beginner Path") {
+		t.Errorf("should contain 'Beginner Path', got: %s", body)
+	}
+	if !strings.Contains(body, "Advanced Path") {
+		t.Errorf("should contain 'Advanced Path', got: %s", body)
+	}
+}
+
+func TestPathsList_Empty(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodGet, "/paths", nil)
+	w := httptest.NewRecorder()
+	pathsListHandler(db).ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestPathsList_MethodNotAllowed(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodPost, "/paths", nil)
+	w := httptest.NewRecorder()
+	pathsListHandler(db).ServeHTTP(w, req)
+
+	if w.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("expected 405, got %d", w.Code)
+	}
+}
+
+// ── Path detail ─────────────────────────────────────────────────────
+
+func TestPathDetail(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+	insertTestPathData(t, db)
+
+	req := httptest.NewRequest(http.MethodGet, "/paths/1", nil)
+	w := httptest.NewRecorder()
+	pathDetailHandler(db).ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "Beginner Path") {
+		t.Errorf("should contain 'Beginner Path', got: %s", body)
+	}
+	if !strings.Contains(body, "Learn Grip") {
+		t.Errorf("should contain step 'Learn Grip', got: %s", body)
+	}
+	if !strings.Contains(body, "Grip Tutorial") {
+		t.Errorf("should contain linked content 'Grip Tutorial', got: %s", body)
+	}
+}
+
+func TestPathDetail_NotFound(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodGet, "/paths/999", nil)
+	w := httptest.NewRecorder()
+	pathDetailHandler(db).ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+}
+
+func TestPathDetail_InvalidID(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodGet, "/paths/abc", nil)
+	w := httptest.NewRecorder()
+	pathDetailHandler(db).ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+}
+
+// ── Home with learning paths ────────────────────────────────────────
+
+func TestHome_WithLearningPaths(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+	insertTestPathData(t, db)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	w := httptest.NewRecorder()
+	homeHandler(db).ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "Beginner Path") {
+		t.Errorf("home should contain learning path 'Beginner Path', got: %s", body)
+	}
+	if !strings.Contains(body, "Basics") {
+		t.Errorf("home should still contain category 'Basics', got: %s", body)
+	}
+}
+
 func TestBasicAuth_ValidCredentials(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
