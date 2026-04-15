@@ -49,10 +49,13 @@ object DeepLink {
     }
 
     /** bilibili.com/video/BVxxx -> bilibili://video/BVxxx */
+    /** b23.tv short links -> null (opened in Custom Tab, which follows the redirect) */
     private fun bilibiliDeepLink(urlString: String): Uri? {
         val uri = Uri.parse(urlString)
         val host = uri.host ?: return null
-        if (!host.contains("bilibili.com") && !host.contains("b23.tv")) return null
+        // b23.tv short links redirect to the real URL; let the Custom Tab handle it.
+        if (host.contains("b23.tv")) return null
+        if (!host.contains("bilibili.com")) return null
         val segments = uri.pathSegments
         if (segments.size < 2 || segments[0] != "video") return null
         return Uri.parse("bilibili://video/${segments[1]}")

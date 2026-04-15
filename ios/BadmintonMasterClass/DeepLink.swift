@@ -45,10 +45,17 @@ enum DeepLink {
     // MARK: - Platform-specific deep links
 
     /// bilibili.com/video/BVxxx -> bilibili://video/BVxxx
+    /// b23.tv short links -> nil (opened in browser, which follows the redirect)
     private static func bilibiliDeepLink(_ urlString: String) -> URL? {
         guard let url = URL(string: urlString),
-              let host = url.host,
-              (host.contains("bilibili.com") || host.contains("b23.tv")),
+              let host = url.host else {
+            return nil
+        }
+        // b23.tv short links redirect to the real URL; let the browser handle it.
+        if host.contains("b23.tv") {
+            return nil
+        }
+        guard host.contains("bilibili.com"),
               url.pathComponents.count >= 3,
               url.pathComponents[1] == "video" else {
             return nil
