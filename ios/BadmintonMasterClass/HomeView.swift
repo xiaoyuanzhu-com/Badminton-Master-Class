@@ -7,7 +7,9 @@ struct HomeView: View {
     @State private var searchResults: [ContentItem] = []
     @State private var selectedURL: URL?
     @State private var searchTask: Task<Void, Never>?
+    @State private var favoriteItems: [ContentItem] = []
     @EnvironmentObject private var syncManager: SyncManager
+    @EnvironmentObject private var userState: UserState
 
     private var isSearching: Bool {
         !searchText.trimmingCharacters(in: .whitespaces).isEmpty
@@ -52,6 +54,12 @@ struct HomeView: View {
                 async let paths = Database.shared.learningPathsAsync()
                 categories = await cats
                 learningPaths = await paths
+                favoriteItems = await Database.shared.contentsByIdsAsync(userState.favorites)
+            }
+            .onChange(of: userState.favorites) { _, newFavorites in
+                Task {
+                    favoriteItems = await Database.shared.contentsByIdsAsync(newFavorites)
+                }
             }
         }
     }
@@ -84,6 +92,25 @@ struct HomeView: View {
                             .listRowSeparator(.hidden)
                         } header: {
                             Text("学习路径")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                        }
+                    }
+
+                    if !favoriteItems.isEmpty {
+                        Section {
+                            ForEach(favoriteItems) { item in
+                                Button {
+                                    DeepLink.open(sourceUrl: item.sourceUrl, sourcePlatform: item.sourcePlatform) { url in
+                                        selectedURL = url
+                                    }
+                                } label: {
+                                    ContentRow(item: item)
+                                }
+                                .tint(.primary)
+                            }
+                        } header: {
+                            Text("我的收藏")
                                 .font(.title2)
                                 .fontWeight(.bold)
                         }

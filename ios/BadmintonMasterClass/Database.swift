@@ -208,6 +208,43 @@ final class Database {
         return results
     }
 
+    func contentsByIds(_ ids: [Int]) -> [ContentItem] {
+        guard !ids.isEmpty else { return [] }
+        var results: [ContentItem] = []
+        var stmt: OpaquePointer?
+        let placeholders = ids.map { _ in "?" }.joined(separator: ",")
+        let sql = "SELECT id, title, summary, thumbnail_url, source_url, source_platform, author_name, category_id, sort_order FROM contents WHERE id IN (\(placeholders))"
+
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return results }
+        for (index, id) in ids.enumerated() {
+            sqlite3_bind_int(stmt, Int32(index + 1), Int32(id))
+        }
+
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            let id = Int(sqlite3_column_int(stmt, 0))
+            let title = String(cString: sqlite3_column_text(stmt, 1))
+            let summary = String(cString: sqlite3_column_text(stmt, 2))
+            let thumbnailUrl = String(cString: sqlite3_column_text(stmt, 3))
+            let sourceUrl = String(cString: sqlite3_column_text(stmt, 4))
+            let sourcePlatform = String(cString: sqlite3_column_text(stmt, 5))
+            let authorName = String(cString: sqlite3_column_text(stmt, 6))
+            let categoryId = Int(sqlite3_column_int(stmt, 7))
+            let sortOrder = Int(sqlite3_column_int(stmt, 8))
+
+            results.append(ContentItem(
+                id: id, title: title, summary: summary,
+                thumbnailUrl: thumbnailUrl, sourceUrl: sourceUrl,
+                sourcePlatform: sourcePlatform, authorName: authorName,
+                categoryId: categoryId, sortOrder: sortOrder
+            ))
+        }
+
+        sqlite3_finalize(stmt)
+        // Preserve the order of input IDs
+        let lookup = Dictionary(uniqueKeysWithValues: results.map { ($0.id, $0) })
+        return ids.compactMap { lookup[$0] }
+    }
+
     func searchContents(keyword: String) -> [ContentItem] {
         var results: [ContentItem] = []
         guard !keyword.trimmingCharacters(in: .whitespaces).isEmpty else { return results }
@@ -260,6 +297,15 @@ final class Database {
         await withCheckedContinuation { continuation in
             Self.queryQueue.async {
                 let result = self.contents(categoryId: categoryId)
+                continuation.resume(returning: result)
+            }
+        }
+    }
+
+    func contentsByIdsAsync(_ ids: [Int]) async -> [ContentItem] {
+        await withCheckedContinuation { continuation in
+            Self.queryQueue.async {
+                let result = self.contentsByIds(ids)
                 continuation.resume(returning: result)
             }
         }

@@ -18,6 +18,7 @@
 		000000000000000000000022 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000021 /* DeepLink.swift */; };
 		000000000000000000000024 /* SyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000023 /* SyncManager.swift */; };
 		000000000000000000000026 /* PathDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000025 /* PathDetailView.swift */; };
+		000000000000000000000028 /* UserState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000027 /* UserState.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +34,7 @@
 		000000000000000000000021 /* DeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DeepLink.swift"; sourceTree = "<group>"; };
 		000000000000000000000023 /* SyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SyncManager.swift"; sourceTree = "<group>"; };
 		000000000000000000000025 /* PathDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PathDetailView.swift"; sourceTree = "<group>"; };
+		000000000000000000000027 /* UserState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserState.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -67,6 +69,7 @@
 				000000000000000000000021 /* DeepLink.swift */,
 				000000000000000000000023 /* SyncManager.swift */,
 				000000000000000000000025 /* PathDetailView.swift */,
+				000000000000000000000027 /* UserState.swift */,
 				000000000000000000000011 /* Resources */,
 			);
 			path = BadmintonMasterClass;
@@ -162,6 +165,7 @@
 				000000000000000000000022 /* DeepLink.swift in Sources */,
 				000000000000000000000024 /* SyncManager.swift in Sources */,
 				000000000000000000000026 /* PathDetailView.swift in Sources */,
+				000000000000000000000028 /* UserState.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

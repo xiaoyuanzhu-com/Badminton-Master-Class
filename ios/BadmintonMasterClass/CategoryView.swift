@@ -66,6 +66,8 @@ struct CategoryView: View {
 
 struct ContentRow: View {
     let item: ContentItem
+    var showHeart: Bool = true
+    @EnvironmentObject private var userState: UserState
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -91,6 +93,22 @@ struct ContentRow: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+            }
+
+            if showHeart {
+                Spacer()
+
+                Button {
+                    userState.toggleFavorite(contentId: item.id)
+                } label: {
+                    Image(systemName: userState.isFavorite(contentId: item.id) ? "heart.fill" : "heart")
+                        .font(.system(size: 18))
+                        .foregroundStyle(userState.isFavorite(contentId: item.id)
+                            ? Color(red: 0xD3/255.0, green: 0x00/255.0, blue: 0x05/255.0)
+                            : Color(red: 0x70/255.0, green: 0x70/255.0, blue: 0x72/255.0))
+                }
+                .buttonStyle(.plain)
+                .frame(width: 44, height: 44)
             }
         }
         .padding(.vertical, 4)
