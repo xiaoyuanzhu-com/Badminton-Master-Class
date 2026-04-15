@@ -43,6 +43,10 @@ fun BMCApp() {
                 onCategoryTap = { category ->
                     val encodedName = URLEncoder.encode(category.name, "UTF-8")
                     navController.navigate("category/${category.id}/${encodedName}")
+                },
+                onPathTap = { path ->
+                    val encodedTitle = URLEncoder.encode(path.title, "UTF-8")
+                    navController.navigate("path/${path.id}/${encodedTitle}")
                 }
             )
         }
@@ -64,6 +68,23 @@ fun BMCApp() {
                     val encodedName = URLEncoder.encode(sub.name, "UTF-8")
                     navController.navigate("category/${sub.id}/${encodedName}")
                 },
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route = "path/{pathId}/{pathTitle}",
+            arguments = listOf(
+                navArgument("pathId") { type = NavType.IntType },
+                navArgument("pathTitle") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val pathId = backStackEntry.arguments?.getInt("pathId") ?: return@composable
+            val pathTitle = URLDecoder.decode(
+                backStackEntry.arguments?.getString("pathTitle") ?: "", "UTF-8"
+            )
+            PathDetailScreen(
+                pathId = pathId,
+                pathTitle = pathTitle,
                 onBack = { navController.popBackStack() }
             )
         }

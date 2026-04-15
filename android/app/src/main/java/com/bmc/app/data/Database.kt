@@ -4,6 +4,8 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import com.bmc.app.models.Category
 import com.bmc.app.models.ContentItem
+import com.bmc.app.models.LearningPath
+import com.bmc.app.models.PathStep
 import java.io.File
 import java.io.FileOutputStream
 
@@ -88,6 +90,91 @@ class Database private constructor(context: Context) {
         val cursor = database.rawQuery(
             "SELECT id, title, summary, thumbnail_url, source_url, source_platform, author_name, category_id, sort_order FROM contents WHERE category_id = ? ORDER BY sort_order",
             arrayOf(categoryId.toString())
+        )
+
+        cursor.use { c ->
+            while (c.moveToNext()) {
+                results.add(
+                    ContentItem(
+                        id = c.getInt(0),
+                        title = c.getString(1),
+                        summary = c.getString(2),
+                        thumbnailUrl = c.getString(3),
+                        sourceUrl = c.getString(4),
+                        sourcePlatform = c.getString(5),
+                        authorName = c.getString(6),
+                        categoryId = c.getInt(7),
+                        sortOrder = c.getInt(8)
+                    )
+                )
+            }
+        }
+        return results
+    }
+
+    fun learningPaths(): List<LearningPath> {
+        val results = mutableListOf<LearningPath>()
+        val database = db ?: return results
+
+        val cursor = database.rawQuery(
+            "SELECT id, title, summary, difficulty, sort_order FROM learning_paths ORDER BY sort_order",
+            null
+        )
+
+        cursor.use { c ->
+            while (c.moveToNext()) {
+                results.add(
+                    LearningPath(
+                        id = c.getInt(0),
+                        title = c.getString(1),
+                        summary = c.getString(2),
+                        difficulty = c.getString(3),
+                        sortOrder = c.getInt(4)
+                    )
+                )
+            }
+        }
+        return results
+    }
+
+    fun pathSteps(pathId: Int): List<PathStep> {
+        val results = mutableListOf<PathStep>()
+        val database = db ?: return results
+
+        val cursor = database.rawQuery(
+            "SELECT id, path_id, step_order, day, title, note FROM path_steps WHERE path_id = ? ORDER BY step_order",
+            arrayOf(pathId.toString())
+        )
+
+        cursor.use { c ->
+            while (c.moveToNext()) {
+                results.add(
+                    PathStep(
+                        id = c.getInt(0),
+                        pathId = c.getInt(1),
+                        stepOrder = c.getInt(2),
+                        day = c.getString(3),
+                        title = c.getString(4),
+                        note = c.getString(5)
+                    )
+                )
+            }
+        }
+        return results
+    }
+
+    fun pathStepContents(stepId: Int): List<ContentItem> {
+        val results = mutableListOf<ContentItem>()
+        val database = db ?: return results
+
+        val cursor = database.rawQuery(
+            """SELECT c.id, c.title, c.summary, c.thumbnail_url, c.source_url,
+               c.source_platform, c.author_name, c.category_id, c.sort_order
+               FROM path_step_contents psc
+               JOIN contents c ON c.id = psc.content_id
+               WHERE psc.step_id = ?
+               ORDER BY psc.sort_order""",
+            arrayOf(stepId.toString())
         )
 
         cursor.use { c ->

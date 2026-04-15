@@ -7,12 +7,16 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -47,8 +51,14 @@ import androidx.compose.ui.unit.dp
 import com.bmc.app.data.DataSync
 import com.bmc.app.data.Database
 import com.bmc.app.data.SyncState
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import com.bmc.app.models.Category
 import com.bmc.app.models.ContentItem
+import com.bmc.app.models.LearningPath
 import com.bmc.app.util.DeepLink
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -59,19 +69,23 @@ import kotlinx.coroutines.withContext
 @Composable
 fun HomeScreen(
     syncState: SyncState = SyncState.Idle,
-    onCategoryTap: (Category) -> Unit
+    onCategoryTap: (Category) -> Unit,
+    onPathTap: (LearningPath) -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
+    var learningPaths by remember { mutableStateOf<List<LearningPath>>(emptyList()) }
     var searchQuery by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<ContentItem>>(emptyList()) }
     var isRefreshing by remember { mutableStateOf(false) }
     val isSearching = searchQuery.isNotBlank()
 
     LaunchedEffect(Unit) {
-        categories = withContext(Dispatchers.IO) {
-            Database.getInstance(context).categories(parentId = null)
+        withContext(Dispatchers.IO) {
+            val db = Database.getInstance(context)
+            categories = db.categories(parentId = null)
+            learningPaths = db.learningPaths()
         }
     }
 
@@ -106,8 +120,10 @@ fun HomeScreen(
                 scope.launch {
                     isRefreshing = true
                     DataSync.syncIfNeeded(context)
-                    categories = withContext(Dispatchers.IO) {
-                        Database.getInstance(context).categories(parentId = null)
+                    withContext(Dispatchers.IO) {
+                        val db = Database.getInstance(context)
+                        categories = db.categories(parentId = null)
+                        learningPaths = db.learningPaths()
                     }
                     isRefreshing = false
                 }
@@ -172,8 +188,7 @@ fun HomeScreen(
                     }
                 }
             } else {
-                // Category list
-                if (categories.isEmpty()) {
+                if (categories.isEmpty() && learningPaths.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -201,29 +216,125 @@ fun HomeScreen(
                     }
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(categories) { category ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onCategoryTap(category) }
-                                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = category.icon,
-                                    style = MaterialTheme.typography.titleLarge
-                                )
-                                Text(
-                                    text = category.name,
-                                    style = MaterialTheme.typography.bodyLarge
+                        // Learning paths section
+                        if (learningPaths.isNotEmpty()) {
+                            item {
+                                LearningPathsSection(
+                                    paths = learningPaths,
+                                    onPathTap = onPathTap
                                 )
                             }
-                            HorizontalDivider()
+                        }
+
+                        // Categories section
+                        if (categories.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "分类",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                            items(categories) { category ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onCategoryTap(category) }
+                                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = category.icon,
+                                        style = MaterialTheme.typography.titleLarge
+                                    )
+                                    Text(
+                                        text = category.name,
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                }
+                                HorizontalDivider()
+                            }
                         }
                     }
                 }
             }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LearningPathsSection(
+    paths: List<LearningPath>,
+    onPathTap: (LearningPath) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "学习路径",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(paths) { path ->
+                LearningPathCard(path = path, onClick = { onPathTap(path) })
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(top = 12.dp))
+    }
+}
+
+@Composable
+private fun LearningPathCard(
+    path: LearningPath,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .width(200.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = path.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Text(
+                text = path.summary,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+            ) {
+                Text(
+                    text = path.difficulty,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                )
             }
         }
     }
