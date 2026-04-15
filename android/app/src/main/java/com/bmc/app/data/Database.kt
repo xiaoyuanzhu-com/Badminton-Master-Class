@@ -242,7 +242,13 @@ class Database private constructor(context: Context) {
 
         val pattern = "%$keyword%"
         val cursor = database.rawQuery(
-            "SELECT id, title, summary, thumbnail_url, source_url, source_platform, author_name, category_id, sort_order FROM contents WHERE title LIKE ? OR summary LIKE ? OR author_name LIKE ? ORDER BY sort_order",
+            """SELECT c.id, c.title, c.summary, c.thumbnail_url, c.source_url,
+               c.source_platform, c.author_name, c.category_id, c.sort_order,
+               COALESCE(cat.name, '') AS category_name
+               FROM contents c
+               LEFT JOIN categories cat ON cat.id = c.category_id
+               WHERE c.title LIKE ? OR c.summary LIKE ? OR c.author_name LIKE ?
+               ORDER BY c.sort_order""",
             arrayOf(pattern, pattern, pattern)
         )
 
@@ -258,7 +264,40 @@ class Database private constructor(context: Context) {
                         sourcePlatform = c.getString(5),
                         authorName = c.getString(6),
                         categoryId = c.getInt(7),
-                        sortOrder = c.getInt(8)
+                        sortOrder = c.getInt(8),
+                        categoryName = c.getString(9)
+                    )
+                )
+            }
+        }
+        return results
+    }
+
+    fun searchLearningPaths(keyword: String): List<LearningPath> {
+        val results = mutableListOf<LearningPath>()
+        if (keyword.isBlank()) return results
+        val database = db ?: return results
+
+        val pattern = "%$keyword%"
+        val cursor = database.rawQuery(
+            """SELECT lp.id, lp.title, lp.summary, lp.difficulty, lp.sort_order,
+               (SELECT COUNT(*) FROM path_steps WHERE path_id = lp.id) AS step_count
+               FROM learning_paths lp
+               WHERE lp.title LIKE ? OR lp.summary LIKE ?
+               ORDER BY lp.sort_order""",
+            arrayOf(pattern, pattern)
+        )
+
+        cursor.use { c ->
+            while (c.moveToNext()) {
+                results.add(
+                    LearningPath(
+                        id = c.getInt(0),
+                        title = c.getString(1),
+                        summary = c.getString(2),
+                        difficulty = c.getString(3),
+                        sortOrder = c.getInt(4),
+                        stepCount = c.getInt(5)
                     )
                 )
             }

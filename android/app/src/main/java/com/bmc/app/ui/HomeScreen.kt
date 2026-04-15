@@ -82,6 +82,7 @@ fun HomeScreen(
     var favoriteContents by remember { mutableStateOf<List<ContentItem>>(emptyList()) }
     var searchQuery by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<ContentItem>>(emptyList()) }
+    var searchPathResults by remember { mutableStateOf<List<LearningPath>>(emptyList()) }
     var isRefreshing by remember { mutableStateOf(false) }
     val isSearching = searchQuery.isNotBlank()
 
@@ -110,10 +111,13 @@ fun HomeScreen(
     LaunchedEffect(searchQuery) {
         if (searchQuery.isBlank()) {
             searchResults = emptyList()
+            searchPathResults = emptyList()
         } else {
             delay(300) // 300ms debounce — coroutine auto-cancelled on new keystroke
-            searchResults = withContext(Dispatchers.IO) {
-                Database.getInstance(context).searchContents(searchQuery)
+            withContext(Dispatchers.IO) {
+                val db = Database.getInstance(context)
+                searchResults = db.searchContents(searchQuery)
+                searchPathResults = db.searchLearningPaths(searchQuery)
             }
         }
     }
@@ -184,7 +188,7 @@ fun HomeScreen(
 
             if (isSearching) {
                 // Search results
-                if (searchResults.isEmpty()) {
+                if (searchResults.isEmpty() && searchPathResults.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -197,14 +201,42 @@ fun HomeScreen(
                     }
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(searchResults) { item ->
-                            ContentRow(
-                                item = item,
-                                onClick = {
-                                    DeepLink.open(context, item.sourceUrl, item.sourcePlatform)
-                                }
-                            )
-                            HorizontalDivider()
+                        if (searchPathResults.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "学习路径",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                            items(searchPathResults) { path ->
+                                SearchPathRow(
+                                    path = path,
+                                    onClick = { onPathTap(path) }
+                                )
+                                HorizontalDivider()
+                            }
+                        }
+
+                        if (searchResults.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "内容",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                            items(searchResults) { item ->
+                                ContentRow(
+                                    item = item,
+                                    onClick = {
+                                        DeepLink.open(context, item.sourceUrl, item.sourcePlatform)
+                                    }
+                                )
+                                HorizontalDivider()
+                            }
                         }
                     }
                 }
@@ -407,6 +439,54 @@ private fun LearningPathCard(
                     .height(4.dp),
                 color = Color(0xFF007D48),
                 trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchPathRow(
+    path: LearningPath,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = path.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            if (path.summary.isNotEmpty()) {
+                Text(
+                    text = path.summary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+
+        Surface(
+            shape = RoundedCornerShape(50),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+        ) {
+            Text(
+                text = path.difficulty,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
             )
         }
     }

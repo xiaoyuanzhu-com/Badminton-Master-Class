@@ -230,6 +230,10 @@ internal fun ContentRow(
             ) {
                 PlatformBadge(platform = item.sourcePlatform)
 
+                if (item.categoryName.isNotEmpty()) {
+                    CategoryBadge(name = item.categoryName)
+                }
+
                 if (item.authorName.isNotEmpty()) {
                     Text(
                         text = item.authorName,
@@ -285,6 +289,22 @@ internal fun ContentThumbnail(thumbnailUrl: String = "") {
                 modifier = Modifier.size(20.dp)
             )
         }
+    }
+}
+
+@Composable
+internal fun CategoryBadge(name: String) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = LightGray
+    ) {
+        Text(
+            text = name,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Medium,
+            color = SecondaryText,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+        )
     }
 }
 

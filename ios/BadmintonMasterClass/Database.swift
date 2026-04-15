@@ -249,7 +249,15 @@ final class Database {
         var results: [ContentItem] = []
         guard !keyword.trimmingCharacters(in: .whitespaces).isEmpty else { return results }
         var stmt: OpaquePointer?
-        let sql = "SELECT id, title, summary, thumbnail_url, source_url, source_platform, author_name, category_id, sort_order FROM contents WHERE title LIKE ? OR summary LIKE ? OR author_name LIKE ? ORDER BY sort_order"
+        let sql = """
+            SELECT c.id, c.title, c.summary, c.thumbnail_url, c.source_url,
+                   c.source_platform, c.author_name, c.category_id, c.sort_order,
+                   COALESCE(cat.name, '') AS category_name
+            FROM contents c
+            LEFT JOIN categories cat ON cat.id = c.category_id
+            WHERE c.title LIKE ? OR c.summary LIKE ? OR c.author_name LIKE ?
+            ORDER BY c.sort_order
+            """
 
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return results }
         let pattern = "%\(keyword)%"
@@ -267,12 +275,50 @@ final class Database {
             let authorName = String(cString: sqlite3_column_text(stmt, 6))
             let categoryId = Int(sqlite3_column_int(stmt, 7))
             let sortOrder = Int(sqlite3_column_int(stmt, 8))
+            let categoryName = String(cString: sqlite3_column_text(stmt, 9))
 
             results.append(ContentItem(
                 id: id, title: title, summary: summary,
                 thumbnailUrl: thumbnailUrl, sourceUrl: sourceUrl,
                 sourcePlatform: sourcePlatform, authorName: authorName,
-                categoryId: categoryId, sortOrder: sortOrder
+                categoryId: categoryId, sortOrder: sortOrder,
+                categoryName: categoryName
+            ))
+        }
+
+        sqlite3_finalize(stmt)
+        return results
+    }
+
+    func searchLearningPaths(keyword: String) -> [LearningPath] {
+        var results: [LearningPath] = []
+        guard !keyword.trimmingCharacters(in: .whitespaces).isEmpty else { return results }
+        var stmt: OpaquePointer?
+        let sql = """
+            SELECT lp.id, lp.title, lp.summary, lp.difficulty, lp.sort_order,
+                   (SELECT COUNT(*) FROM path_steps WHERE path_id = lp.id) AS step_count
+            FROM learning_paths lp
+            WHERE lp.title LIKE ? OR lp.summary LIKE ?
+            ORDER BY lp.sort_order
+            """
+
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return results }
+        let pattern = "%\(keyword)%"
+        sqlite3_bind_text(stmt, 1, (pattern as NSString).utf8String, -1, nil)
+        sqlite3_bind_text(stmt, 2, (pattern as NSString).utf8String, -1, nil)
+
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            let id = Int(sqlite3_column_int(stmt, 0))
+            let title = String(cString: sqlite3_column_text(stmt, 1))
+            let summary = String(cString: sqlite3_column_text(stmt, 2))
+            let difficulty = String(cString: sqlite3_column_text(stmt, 3))
+            let sortOrder = Int(sqlite3_column_int(stmt, 4))
+            let stepCount = Int(sqlite3_column_int(stmt, 5))
+
+            results.append(LearningPath(
+                id: id, title: title, summary: summary,
+                difficulty: difficulty, sortOrder: sortOrder,
+                stepCount: stepCount
             ))
         }
 
@@ -315,6 +361,15 @@ final class Database {
         await withCheckedContinuation { continuation in
             Self.queryQueue.async {
                 let result = self.searchContents(keyword: keyword)
+                continuation.resume(returning: result)
+            }
+        }
+    }
+
+    func searchLearningPathsAsync(keyword: String) async -> [LearningPath] {
+        await withCheckedContinuation { continuation in
+            Self.queryQueue.async {
+                let result = self.searchLearningPaths(keyword: keyword)
                 continuation.resume(returning: result)
             }
         }

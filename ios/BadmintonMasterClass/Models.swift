@@ -18,6 +18,7 @@ struct ContentItem: Identifiable {
     let authorName: String
     let categoryId: Int
     let sortOrder: Int
+    var categoryName: String = ""
 }
 
 struct LearningPath: Identifiable, Hashable {

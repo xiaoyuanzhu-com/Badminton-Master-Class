@@ -5,6 +5,7 @@ struct HomeView: View {
     @State private var learningPaths: [LearningPath] = []
     @State private var searchText = ""
     @State private var searchResults: [ContentItem] = []
+    @State private var searchPathResults: [LearningPath] = []
     @State private var selectedURL: URL?
     @State private var searchTask: Task<Void, Never>?
     @State private var favoriteItems: [ContentItem] = []
@@ -40,9 +41,14 @@ struct HomeView: View {
                 searchTask = Task {
                     try? await Task.sleep(nanoseconds: 300_000_000) // 300ms debounce
                     guard !Task.isCancelled else { return }
-                    let results = await Database.shared.searchContentsAsync(keyword: newValue)
+                    async let contents = Database.shared.searchContentsAsync(keyword: newValue)
+                    async let paths = Database.shared.searchLearningPathsAsync(keyword: newValue)
+                    let (c, p) = await (contents, paths)
                     guard !Task.isCancelled else { return }
-                    await MainActor.run { searchResults = results }
+                    await MainActor.run {
+                        searchResults = c
+                        searchPathResults = p
+                    }
                 }
             }
             .sheet(item: $selectedURL) { url in
@@ -143,18 +149,48 @@ struct HomeView: View {
 
     private var searchResultsList: some View {
         Group {
-            if searchResults.isEmpty {
+            if searchResults.isEmpty && searchPathResults.isEmpty {
                 ContentUnavailableView("无搜索结果", systemImage: "magnifyingglass")
             } else {
-                List(searchResults) { item in
-                    Button {
-                        DeepLink.open(sourceUrl: item.sourceUrl, sourcePlatform: item.sourcePlatform) { url in
-                            selectedURL = url
+                List {
+                    if !searchPathResults.isEmpty {
+                        Section("学习路径") {
+                            ForEach(searchPathResults) { path in
+                                NavigationLink(value: path) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        HStack {
+                                            Text(path.title)
+                                                .font(.headline)
+                                            Spacer()
+                                            DifficultyBadge(difficulty: path.difficulty)
+                                        }
+                                        if !path.summary.isEmpty {
+                                            Text(path.summary)
+                                                .font(.subheadline)
+                                                .foregroundStyle(.secondary)
+                                                .lineLimit(2)
+                                        }
+                                    }
+                                    .padding(.vertical, 4)
+                                }
+                            }
                         }
-                    } label: {
-                        ContentRow(item: item)
                     }
-                    .tint(.primary)
+
+                    if !searchResults.isEmpty {
+                        Section("内容") {
+                            ForEach(searchResults) { item in
+                                Button {
+                                    DeepLink.open(sourceUrl: item.sourceUrl, sourcePlatform: item.sourcePlatform) { url in
+                                        selectedURL = url
+                                    }
+                                } label: {
+                                    ContentRow(item: item)
+                                }
+                                .tint(.primary)
+                            }
+                        }
+                    }
                 }
             }
         }

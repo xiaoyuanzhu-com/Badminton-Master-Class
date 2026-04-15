@@ -9,5 +9,6 @@ data class ContentItem(
     val sourcePlatform: String,
     val authorName: String,
     val categoryId: Int,
-    val sortOrder: Int
+    val sortOrder: Int,
+    val categoryName: String = ""
 )

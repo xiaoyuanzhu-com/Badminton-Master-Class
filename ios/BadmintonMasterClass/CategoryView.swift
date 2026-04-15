@@ -87,6 +87,10 @@ struct ContentRow: View {
                 HStack(spacing: 8) {
                     PlatformBadge(platform: item.sourcePlatform)
 
+                    if !item.categoryName.isEmpty {
+                        CategoryBadge(name: item.categoryName)
+                    }
+
                     if !item.authorName.isEmpty {
                         Text(item.authorName)
                             .font(.caption)
@@ -153,6 +157,21 @@ struct ContentThumbnail: View {
                 .foregroundStyle(.secondary)
                 .font(.system(size: 16))
         }
+    }
+}
+
+struct CategoryBadge: View {
+    let name: String
+
+    var body: some View {
+        Text(name)
+            .font(.caption2)
+            .fontWeight(.medium)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(Color(red: 0xF5/255.0, green: 0xF5/255.0, blue: 0xF5/255.0))
+            .foregroundStyle(Color(red: 0x70/255.0, green: 0x70/255.0, blue: 0x72/255.0))
+            .clipShape(Capsule())
     }
 }
 
