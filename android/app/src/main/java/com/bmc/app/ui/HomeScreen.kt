@@ -50,6 +50,7 @@ import com.bmc.app.data.SyncState
 import com.bmc.app.models.Category
 import com.bmc.app.models.ContentItem
 import com.bmc.app.util.DeepLink
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,6 +75,7 @@ fun HomeScreen(
         if (searchQuery.isBlank()) {
             searchResults = emptyList()
         } else {
+            delay(300) // 300ms debounce — coroutine auto-cancelled on new keystroke
             searchResults = Database.getInstance(context).searchContents(searchQuery)
         }
     }
