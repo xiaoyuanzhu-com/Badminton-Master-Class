@@ -15,12 +15,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.runtime.remember
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -43,6 +46,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.bmc.app.data.Database
+import com.bmc.app.data.UserState
 import com.bmc.app.models.Category
 import com.bmc.app.models.ContentItem
 import com.bmc.app.util.DeepLink
@@ -184,8 +188,13 @@ private fun SectionHeader(title: String) {
 @Composable
 internal fun ContentRow(
     item: ContentItem,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    showFavorite: Boolean = true
 ) {
+    val context = LocalContext.current
+    val userState = remember { UserState.getInstance(context) }
+    val isFav = userState.isFavorite(item.id)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -197,6 +206,7 @@ internal fun ContentRow(
         ContentThumbnail(thumbnailUrl = item.thumbnailUrl)
 
         Column(
+            modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
@@ -227,6 +237,20 @@ internal fun ContentRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+            }
+        }
+
+        if (showFavorite) {
+            IconButton(
+                onClick = { userState.toggleFavorite(item.id) },
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = if (isFav) "取消收藏" else "收藏",
+                    tint = if (isFav) ErrorRed else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }

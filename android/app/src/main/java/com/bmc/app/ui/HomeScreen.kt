@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import com.bmc.app.data.DataSync
 import com.bmc.app.data.Database
 import com.bmc.app.data.SyncState
+import com.bmc.app.data.UserState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Surface
@@ -74,18 +75,34 @@ fun HomeScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val userState = remember { UserState.getInstance(context) }
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
     var learningPaths by remember { mutableStateOf<List<LearningPath>>(emptyList()) }
+    var favoriteContents by remember { mutableStateOf<List<ContentItem>>(emptyList()) }
     var searchQuery by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<ContentItem>>(emptyList()) }
     var isRefreshing by remember { mutableStateOf(false) }
     val isSearching = searchQuery.isNotBlank()
+
+    // Read the snapshot so we recompose when favorites change
+    val favoriteIds = userState.favorites.toList()
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             val db = Database.getInstance(context)
             categories = db.categories(parentId = null)
             learningPaths = db.learningPaths()
+        }
+    }
+
+    // Reload favorite contents whenever the favorites list changes
+    LaunchedEffect(favoriteIds) {
+        if (favoriteIds.isEmpty()) {
+            favoriteContents = emptyList()
+        } else {
+            favoriteContents = withContext(Dispatchers.IO) {
+                Database.getInstance(context).contentsByIds(favoriteIds)
+            }
         }
     }
 
@@ -124,6 +141,9 @@ fun HomeScreen(
                         val db = Database.getInstance(context)
                         categories = db.categories(parentId = null)
                         learningPaths = db.learningPaths()
+                        if (favoriteIds.isNotEmpty()) {
+                            favoriteContents = db.contentsByIds(favoriteIds)
+                        }
                     }
                     isRefreshing = false
                 }
@@ -188,7 +208,7 @@ fun HomeScreen(
                     }
                 }
             } else {
-                if (categories.isEmpty() && learningPaths.isEmpty()) {
+                if (categories.isEmpty() && learningPaths.isEmpty() && favoriteContents.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -216,6 +236,27 @@ fun HomeScreen(
                     }
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        // Favorites section
+                        if (favoriteContents.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "我的收藏",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                            items(favoriteContents) { item ->
+                                ContentRow(
+                                    item = item,
+                                    onClick = {
+                                        DeepLink.open(context, item.sourceUrl, item.sourcePlatform)
+                                    }
+                                )
+                                HorizontalDivider()
+                            }
+                        }
+
                         // Learning paths section
                         if (learningPaths.isNotEmpty()) {
                             item {

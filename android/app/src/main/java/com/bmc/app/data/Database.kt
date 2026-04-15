@@ -197,6 +197,41 @@ class Database private constructor(context: Context) {
         return results
     }
 
+    fun contentsByIds(ids: List<Int>): List<ContentItem> {
+        val results = mutableListOf<ContentItem>()
+        if (ids.isEmpty()) return results
+        val database = db ?: return results
+
+        val placeholders = ids.joinToString(",") { "?" }
+        val cursor = database.rawQuery(
+            "SELECT id, title, summary, thumbnail_url, source_url, source_platform, author_name, category_id, sort_order FROM contents WHERE id IN ($placeholders)",
+            ids.map { it.toString() }.toTypedArray()
+        )
+
+        val itemMap = mutableMapOf<Int, ContentItem>()
+        cursor.use { c ->
+            while (c.moveToNext()) {
+                val item = ContentItem(
+                    id = c.getInt(0),
+                    title = c.getString(1),
+                    summary = c.getString(2),
+                    thumbnailUrl = c.getString(3),
+                    sourceUrl = c.getString(4),
+                    sourcePlatform = c.getString(5),
+                    authorName = c.getString(6),
+                    categoryId = c.getInt(7),
+                    sortOrder = c.getInt(8)
+                )
+                itemMap[item.id] = item
+            }
+        }
+        // Preserve the order of the input IDs
+        for (id in ids) {
+            itemMap[id]?.let { results.add(it) }
+        }
+        return results
+    }
+
     fun searchContents(keyword: String): List<ContentItem> {
         val results = mutableListOf<ContentItem>()
         if (keyword.isBlank()) return results
