@@ -13,6 +13,8 @@ import androidx.navigation.navArgument
 import com.bmc.app.data.DataSync
 import com.bmc.app.data.SyncState
 import kotlinx.coroutines.delay
+import java.net.URLDecoder
+import java.net.URLEncoder
 
 @Composable
 fun BMCApp() {
@@ -39,7 +41,8 @@ fun BMCApp() {
             HomeScreen(
                 syncState = syncState,
                 onCategoryTap = { category ->
-                    navController.navigate("category/${category.id}/${category.name}")
+                    val encodedName = URLEncoder.encode(category.name, "UTF-8")
+                    navController.navigate("category/${category.id}/${encodedName}")
                 }
             )
         }
@@ -51,12 +54,15 @@ fun BMCApp() {
             )
         ) { backStackEntry ->
             val categoryId = backStackEntry.arguments?.getInt("categoryId") ?: return@composable
-            val categoryName = backStackEntry.arguments?.getString("categoryName") ?: ""
+            val categoryName = URLDecoder.decode(
+                backStackEntry.arguments?.getString("categoryName") ?: "", "UTF-8"
+            )
             CategoryScreen(
                 categoryId = categoryId,
                 categoryName = categoryName,
                 onSubcategoryTap = { sub ->
-                    navController.navigate("category/${sub.id}/${sub.name}")
+                    val encodedName = URLEncoder.encode(sub.name, "UTF-8")
+                    navController.navigate("category/${sub.id}/${encodedName}")
                 },
                 onBack = { navController.popBackStack() }
             )
