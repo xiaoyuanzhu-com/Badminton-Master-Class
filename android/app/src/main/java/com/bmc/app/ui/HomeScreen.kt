@@ -50,8 +50,10 @@ import com.bmc.app.data.SyncState
 import com.bmc.app.models.Category
 import com.bmc.app.models.ContentItem
 import com.bmc.app.util.DeepLink
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,7 +70,9 @@ fun HomeScreen(
     val isSearching = searchQuery.isNotBlank()
 
     LaunchedEffect(Unit) {
-        categories = Database.getInstance(context).categories(parentId = null)
+        categories = withContext(Dispatchers.IO) {
+            Database.getInstance(context).categories(parentId = null)
+        }
     }
 
     LaunchedEffect(searchQuery) {
@@ -76,7 +80,9 @@ fun HomeScreen(
             searchResults = emptyList()
         } else {
             delay(300) // 300ms debounce — coroutine auto-cancelled on new keystroke
-            searchResults = Database.getInstance(context).searchContents(searchQuery)
+            searchResults = withContext(Dispatchers.IO) {
+                Database.getInstance(context).searchContents(searchQuery)
+            }
         }
     }
 
@@ -100,7 +106,9 @@ fun HomeScreen(
                 scope.launch {
                     isRefreshing = true
                     DataSync.syncIfNeeded(context)
-                    categories = Database.getInstance(context).categories(parentId = null)
+                    categories = withContext(Dispatchers.IO) {
+                        Database.getInstance(context).categories(parentId = null)
+                    }
                     isRefreshing = false
                 }
             },

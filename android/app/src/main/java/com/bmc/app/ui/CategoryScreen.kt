@@ -46,6 +46,8 @@ import com.bmc.app.data.Database
 import com.bmc.app.models.Category
 import com.bmc.app.models.ContentItem
 import com.bmc.app.util.DeepLink
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,9 +62,11 @@ fun CategoryScreen(
     var contents by remember { mutableStateOf<List<ContentItem>>(emptyList()) }
 
     LaunchedEffect(categoryId) {
-        val db = Database.getInstance(context)
-        subcategories = db.categories(parentId = categoryId)
-        contents = db.contents(categoryId = categoryId)
+        withContext(Dispatchers.IO) {
+            val db = Database.getInstance(context)
+            subcategories = db.categories(parentId = categoryId)
+            contents = db.contents(categoryId = categoryId)
+        }
     }
 
     Scaffold(
