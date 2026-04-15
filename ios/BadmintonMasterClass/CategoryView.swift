@@ -18,6 +18,12 @@ struct CategoryView: View {
                                     .font(.title3)
                                 Text(sub.name)
                                     .font(.body)
+                                Spacer()
+                                if sub.contentCount > 0 {
+                                    Text("\(sub.contentCount) 个内容")
+                                        .font(.caption)
+                                        .foregroundStyle(Color(red: 0x70/255.0, green: 0x70/255.0, blue: 0x72/255.0))
+                                }
                             }
                             .padding(.vertical, 2)
                         }
@@ -68,54 +74,155 @@ struct ContentRow: View {
     let item: ContentItem
     var showHeart: Bool = true
     @EnvironmentObject private var userState: UserState
+    @State private var showEditorNotes = false
+
+    private var platformActionText: String {
+        switch item.sourcePlatform {
+        case "bilibili": return "在B站观看"
+        case "xiaohongshu": return "在小红书查看"
+        case "douyin": return "在抖音观看"
+        case "wechat": return "在微信查看"
+        case "youtube": return "在YouTube观看"
+        default: return "打开链接"
+        }
+    }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            ContentThumbnail(url: item.thumbnailUrl)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: 12) {
+                ContentThumbnail(url: item.thumbnailUrl)
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text(item.title)
-                    .font(.headline)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(item.title)
+                        .font(.headline)
 
-                if !item.summary.isEmpty {
-                    Text(item.summary)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
+                    if !item.summary.isEmpty {
+                        Text(item.summary)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+
+                    // Metadata row: platform badge, author, category, difficulty, duration
+                    HStack(spacing: 8) {
+                        PlatformBadge(platform: item.sourcePlatform)
+
+                        if !item.categoryName.isEmpty {
+                            CategoryBadge(name: item.categoryName)
+                        }
+
+                        if !item.authorName.isEmpty {
+                            Text(item.authorName)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        if !item.difficulty.isEmpty {
+                            ContentDifficultyBadge(difficulty: item.difficulty)
+                        }
+
+                        if !item.duration.isEmpty {
+                            Text(item.duration)
+                                .font(.caption)
+                                .foregroundStyle(Color(red: 0x70/255.0, green: 0x70/255.0, blue: 0x72/255.0))
+                        }
+                    }
+
+                    // External link indicator
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.up.right.square")
+                            .font(.caption2)
+                            .foregroundStyle(Color(red: 0x70/255.0, green: 0x70/255.0, blue: 0x72/255.0))
+                        Text(platformActionText)
+                            .font(.caption2)
+                            .foregroundStyle(Color(red: 0x70/255.0, green: 0x70/255.0, blue: 0x72/255.0))
+                    }
                 }
 
-                HStack(spacing: 8) {
-                    PlatformBadge(platform: item.sourcePlatform)
+                if showHeart {
+                    Spacer()
 
-                    if !item.categoryName.isEmpty {
-                        CategoryBadge(name: item.categoryName)
+                    Button {
+                        userState.toggleFavorite(contentId: item.id)
+                    } label: {
+                        Image(systemName: userState.isFavorite(contentId: item.id) ? "heart.fill" : "heart")
+                            .font(.system(size: 18))
+                            .foregroundStyle(userState.isFavorite(contentId: item.id)
+                                ? Color(red: 0xD3/255.0, green: 0x00/255.0, blue: 0x05/255.0)
+                                : Color(red: 0x70/255.0, green: 0x70/255.0, blue: 0x72/255.0))
                     }
-
-                    if !item.authorName.isEmpty {
-                        Text(item.authorName)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                    .buttonStyle(.plain)
+                    .frame(width: 44, height: 44)
                 }
             }
 
-            if showHeart {
-                Spacer()
-
+            // Editor's notes (expandable)
+            if !item.editorNotes.isEmpty {
                 Button {
-                    userState.toggleFavorite(contentId: item.id)
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showEditorNotes.toggle()
+                    }
                 } label: {
-                    Image(systemName: userState.isFavorite(contentId: item.id) ? "heart.fill" : "heart")
-                        .font(.system(size: 18))
-                        .foregroundStyle(userState.isFavorite(contentId: item.id)
-                            ? Color(red: 0xD3/255.0, green: 0x00/255.0, blue: 0x05/255.0)
-                            : Color(red: 0x70/255.0, green: 0x70/255.0, blue: 0x72/255.0))
+                    HStack(spacing: 4) {
+                        Image(systemName: "note.text")
+                            .font(.caption2)
+                        Text("编辑笔记")
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                        Image(systemName: showEditorNotes ? "chevron.up" : "chevron.down")
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(Color(red: 0x70/255.0, green: 0x70/255.0, blue: 0x72/255.0))
                 }
                 .buttonStyle(.plain)
-                .frame(width: 44, height: 44)
+                .padding(.top, 6)
+                .padding(.leading, 72) // align with text stack (60 thumbnail + 12 gap)
+
+                if showEditorNotes {
+                    Text(item.editorNotes)
+                        .font(.caption)
+                        .foregroundStyle(Color(red: 0x70/255.0, green: 0x70/255.0, blue: 0x72/255.0))
+                        .padding(.top, 4)
+                        .padding(.leading, 72)
+                        .padding(.trailing, 16)
+                        .transition(.opacity)
+                }
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+struct ContentDifficultyBadge: View {
+    let difficulty: String
+
+    private var displayName: String {
+        switch difficulty {
+        case "beginner": return "入门"
+        case "intermediate": return "进阶"
+        case "advanced": return "高级"
+        default: return difficulty
+        }
+    }
+
+    private var badgeColor: Color {
+        switch difficulty {
+        case "beginner": return Color(red: 0x00/255.0, green: 0x7D/255.0, blue: 0x48/255.0)
+        case "intermediate": return Color(red: 0x70/255.0, green: 0x70/255.0, blue: 0x72/255.0)
+        case "advanced": return Color(red: 0xD3/255.0, green: 0x00/255.0, blue: 0x05/255.0)
+        default: return .gray
+        }
+    }
+
+    var body: some View {
+        Text(displayName)
+            .font(.caption2)
+            .fontWeight(.medium)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 1)
+            .background(badgeColor.opacity(0.15))
+            .foregroundStyle(badgeColor)
+            .clipShape(Capsule())
     }
 }
 

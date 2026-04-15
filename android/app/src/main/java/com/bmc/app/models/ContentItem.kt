@@ -8,6 +8,9 @@ data class ContentItem(
     val sourceUrl: String,
     val sourcePlatform: String,
     val authorName: String,
+    val difficulty: String,
+    val duration: String,
+    val editorNotes: String,
     val categoryId: Int,
     val sortOrder: Int,
     val categoryName: String = ""

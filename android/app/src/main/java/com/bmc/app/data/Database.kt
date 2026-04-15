@@ -1,6 +1,7 @@
 package com.bmc.app.data
 
 import android.content.Context
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import com.bmc.app.models.Category
 import com.bmc.app.models.ContentItem
@@ -54,16 +55,20 @@ class Database private constructor(context: Context) {
         val results = mutableListOf<Category>()
         val database = db ?: return results
 
+        val sql = """
+            SELECT c.id, c.name, c.icon, c.sort_order, c.parent_id,
+                   (SELECT COUNT(*) FROM contents WHERE category_id = c.id)
+                   + (SELECT COALESCE(SUM(sub_count), 0) FROM (
+                       SELECT (SELECT COUNT(*) FROM contents WHERE category_id = sc.id) AS sub_count
+                       FROM categories sc WHERE sc.parent_id = c.id
+                   ))
+            FROM categories c WHERE c.parent_id ${if (parentId != null) "= ?" else "IS NULL"} ORDER BY c.sort_order
+        """.trimIndent()
+
         val cursor = if (parentId != null) {
-            database.rawQuery(
-                "SELECT id, name, icon, sort_order, parent_id FROM categories WHERE parent_id = ? ORDER BY sort_order",
-                arrayOf(parentId.toString())
-            )
+            database.rawQuery(sql, arrayOf(parentId.toString()))
         } else {
-            database.rawQuery(
-                "SELECT id, name, icon, sort_order, parent_id FROM categories WHERE parent_id IS NULL ORDER BY sort_order",
-                null
-            )
+            database.rawQuery(sql, null)
         }
 
         cursor.use { c ->
@@ -75,7 +80,8 @@ class Database private constructor(context: Context) {
                         name = c.getString(1),
                         icon = c.getString(2),
                         sortOrder = c.getInt(3),
-                        parentId = pid
+                        parentId = pid,
+                        contentCount = c.getInt(5)
                     )
                 )
             }
@@ -83,30 +89,35 @@ class Database private constructor(context: Context) {
         return results
     }
 
+    private val contentColumns = "id, title, summary, thumbnail_url, source_url, source_platform, author_name, difficulty, duration, editor_notes, category_id, sort_order"
+
+    private fun parseContentRow(c: Cursor): ContentItem = ContentItem(
+        id = c.getInt(0),
+        title = c.getString(1),
+        summary = c.getString(2),
+        thumbnailUrl = c.getString(3),
+        sourceUrl = c.getString(4),
+        sourcePlatform = c.getString(5),
+        authorName = c.getString(6),
+        difficulty = c.getString(7),
+        duration = c.getString(8),
+        editorNotes = c.getString(9),
+        categoryId = c.getInt(10),
+        sortOrder = c.getInt(11)
+    )
+
     fun contents(categoryId: Int): List<ContentItem> {
         val results = mutableListOf<ContentItem>()
         val database = db ?: return results
 
         val cursor = database.rawQuery(
-            "SELECT id, title, summary, thumbnail_url, source_url, source_platform, author_name, category_id, sort_order FROM contents WHERE category_id = ? ORDER BY sort_order",
+            "SELECT $contentColumns FROM contents WHERE category_id = ? ORDER BY sort_order",
             arrayOf(categoryId.toString())
         )
 
         cursor.use { c ->
             while (c.moveToNext()) {
-                results.add(
-                    ContentItem(
-                        id = c.getInt(0),
-                        title = c.getString(1),
-                        summary = c.getString(2),
-                        thumbnailUrl = c.getString(3),
-                        sourceUrl = c.getString(4),
-                        sourcePlatform = c.getString(5),
-                        authorName = c.getString(6),
-                        categoryId = c.getInt(7),
-                        sortOrder = c.getInt(8)
-                    )
-                )
+                results.add(parseContentRow(c))
             }
         }
         return results
@@ -172,7 +183,8 @@ class Database private constructor(context: Context) {
 
         val cursor = database.rawQuery(
             """SELECT c.id, c.title, c.summary, c.thumbnail_url, c.source_url,
-               c.source_platform, c.author_name, c.category_id, c.sort_order
+               c.source_platform, c.author_name, c.difficulty, c.duration,
+               c.editor_notes, c.category_id, c.sort_order
                FROM path_step_contents psc
                JOIN contents c ON c.id = psc.content_id
                WHERE psc.step_id = ?
@@ -182,19 +194,7 @@ class Database private constructor(context: Context) {
 
         cursor.use { c ->
             while (c.moveToNext()) {
-                results.add(
-                    ContentItem(
-                        id = c.getInt(0),
-                        title = c.getString(1),
-                        summary = c.getString(2),
-                        thumbnailUrl = c.getString(3),
-                        sourceUrl = c.getString(4),
-                        sourcePlatform = c.getString(5),
-                        authorName = c.getString(6),
-                        categoryId = c.getInt(7),
-                        sortOrder = c.getInt(8)
-                    )
-                )
+                results.add(parseContentRow(c))
             }
         }
         return results
@@ -207,24 +207,14 @@ class Database private constructor(context: Context) {
 
         val placeholders = ids.joinToString(",") { "?" }
         val cursor = database.rawQuery(
-            "SELECT id, title, summary, thumbnail_url, source_url, source_platform, author_name, category_id, sort_order FROM contents WHERE id IN ($placeholders)",
+            "SELECT $contentColumns FROM contents WHERE id IN ($placeholders)",
             ids.map { it.toString() }.toTypedArray()
         )
 
         val itemMap = mutableMapOf<Int, ContentItem>()
         cursor.use { c ->
             while (c.moveToNext()) {
-                val item = ContentItem(
-                    id = c.getInt(0),
-                    title = c.getString(1),
-                    summary = c.getString(2),
-                    thumbnailUrl = c.getString(3),
-                    sourceUrl = c.getString(4),
-                    sourcePlatform = c.getString(5),
-                    authorName = c.getString(6),
-                    categoryId = c.getInt(7),
-                    sortOrder = c.getInt(8)
-                )
+                val item = parseContentRow(c)
                 itemMap[item.id] = item
             }
         }
@@ -243,7 +233,8 @@ class Database private constructor(context: Context) {
         val pattern = "%$keyword%"
         val cursor = database.rawQuery(
             """SELECT c.id, c.title, c.summary, c.thumbnail_url, c.source_url,
-               c.source_platform, c.author_name, c.category_id, c.sort_order,
+               c.source_platform, c.author_name, c.difficulty, c.duration,
+               c.editor_notes, c.category_id, c.sort_order,
                COALESCE(cat.name, '') AS category_name
                FROM contents c
                LEFT JOIN categories cat ON cat.id = c.category_id
@@ -254,20 +245,7 @@ class Database private constructor(context: Context) {
 
         cursor.use { c ->
             while (c.moveToNext()) {
-                results.add(
-                    ContentItem(
-                        id = c.getInt(0),
-                        title = c.getString(1),
-                        summary = c.getString(2),
-                        thumbnailUrl = c.getString(3),
-                        sourceUrl = c.getString(4),
-                        sourcePlatform = c.getString(5),
-                        authorName = c.getString(6),
-                        categoryId = c.getInt(7),
-                        sortOrder = c.getInt(8),
-                        categoryName = c.getString(9)
-                    )
-                )
+                results.add(parseContentRow(c).copy(categoryName = c.getString(12)))
             }
         }
         return results

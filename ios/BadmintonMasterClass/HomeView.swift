@@ -130,6 +130,12 @@ struct HomeView: View {
                                         .font(.title2)
                                     Text(category.name)
                                         .font(.body)
+                                    Spacer()
+                                    if category.contentCount > 0 {
+                                        Text("\(category.contentCount) 个内容")
+                                            .font(.caption)
+                                            .foregroundStyle(Color(red: 0x70/255.0, green: 0x70/255.0, blue: 0x72/255.0))
+                                    }
                                 }
                                 .padding(.vertical, 4)
                             }

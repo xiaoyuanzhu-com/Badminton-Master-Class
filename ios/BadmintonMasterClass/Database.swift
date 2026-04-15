@@ -58,11 +58,27 @@ final class Database {
 
         let sql: String
         if let parentId = parentId {
-            sql = "SELECT id, name, icon, sort_order, parent_id FROM categories WHERE parent_id = ? ORDER BY sort_order"
+            sql = """
+                SELECT c.id, c.name, c.icon, c.sort_order, c.parent_id,
+                       (SELECT COUNT(*) FROM contents WHERE category_id = c.id)
+                       + (SELECT COALESCE(SUM(sub_count), 0) FROM (
+                           SELECT (SELECT COUNT(*) FROM contents WHERE category_id = sc.id) AS sub_count
+                           FROM categories sc WHERE sc.parent_id = c.id
+                       ))
+                FROM categories c WHERE c.parent_id = ? ORDER BY c.sort_order
+                """
             guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return results }
             sqlite3_bind_int(stmt, 1, Int32(parentId))
         } else {
-            sql = "SELECT id, name, icon, sort_order, parent_id FROM categories WHERE parent_id IS NULL ORDER BY sort_order"
+            sql = """
+                SELECT c.id, c.name, c.icon, c.sort_order, c.parent_id,
+                       (SELECT COUNT(*) FROM contents WHERE category_id = c.id)
+                       + (SELECT COALESCE(SUM(sub_count), 0) FROM (
+                           SELECT (SELECT COUNT(*) FROM contents WHERE category_id = sc.id) AS sub_count
+                           FROM categories sc WHERE sc.parent_id = c.id
+                       ))
+                FROM categories c WHERE c.parent_id IS NULL ORDER BY c.sort_order
+                """
             guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return results }
         }
 
@@ -74,8 +90,9 @@ final class Database {
             let pid: Int? = sqlite3_column_type(stmt, 4) == SQLITE_NULL
                 ? nil
                 : Int(sqlite3_column_int(stmt, 4))
+            let contentCount = Int(sqlite3_column_int(stmt, 5))
 
-            results.append(Category(id: id, name: name, icon: icon, sortOrder: sortOrder, parentId: pid))
+            results.append(Category(id: id, name: name, icon: icon, sortOrder: sortOrder, parentId: pid, contentCount: contentCount))
         }
 
         sqlite3_finalize(stmt)
@@ -85,32 +102,41 @@ final class Database {
     func contents(categoryId: Int) -> [ContentItem] {
         var results: [ContentItem] = []
         var stmt: OpaquePointer?
-        let sql = "SELECT id, title, summary, thumbnail_url, source_url, source_platform, author_name, category_id, sort_order FROM contents WHERE category_id = ? ORDER BY sort_order"
+        let sql = "SELECT id, title, summary, thumbnail_url, source_url, source_platform, author_name, difficulty, duration, editor_notes, category_id, sort_order FROM contents WHERE category_id = ? ORDER BY sort_order"
 
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return results }
         sqlite3_bind_int(stmt, 1, Int32(categoryId))
 
         while sqlite3_step(stmt) == SQLITE_ROW {
-            let id = Int(sqlite3_column_int(stmt, 0))
-            let title = String(cString: sqlite3_column_text(stmt, 1))
-            let summary = String(cString: sqlite3_column_text(stmt, 2))
-            let thumbnailUrl = String(cString: sqlite3_column_text(stmt, 3))
-            let sourceUrl = String(cString: sqlite3_column_text(stmt, 4))
-            let sourcePlatform = String(cString: sqlite3_column_text(stmt, 5))
-            let authorName = String(cString: sqlite3_column_text(stmt, 6))
-            let categoryId = Int(sqlite3_column_int(stmt, 7))
-            let sortOrder = Int(sqlite3_column_int(stmt, 8))
-
-            results.append(ContentItem(
-                id: id, title: title, summary: summary,
-                thumbnailUrl: thumbnailUrl, sourceUrl: sourceUrl,
-                sourcePlatform: sourcePlatform, authorName: authorName,
-                categoryId: categoryId, sortOrder: sortOrder
-            ))
+            results.append(parseContentRow(stmt))
         }
 
         sqlite3_finalize(stmt)
         return results
+    }
+
+    private func parseContentRow(_ stmt: OpaquePointer?) -> ContentItem {
+        let id = Int(sqlite3_column_int(stmt, 0))
+        let title = String(cString: sqlite3_column_text(stmt, 1))
+        let summary = String(cString: sqlite3_column_text(stmt, 2))
+        let thumbnailUrl = String(cString: sqlite3_column_text(stmt, 3))
+        let sourceUrl = String(cString: sqlite3_column_text(stmt, 4))
+        let sourcePlatform = String(cString: sqlite3_column_text(stmt, 5))
+        let authorName = String(cString: sqlite3_column_text(stmt, 6))
+        let difficulty = String(cString: sqlite3_column_text(stmt, 7))
+        let duration = String(cString: sqlite3_column_text(stmt, 8))
+        let editorNotes = String(cString: sqlite3_column_text(stmt, 9))
+        let categoryId = Int(sqlite3_column_int(stmt, 10))
+        let sortOrder = Int(sqlite3_column_int(stmt, 11))
+
+        return ContentItem(
+            id: id, title: title, summary: summary,
+            thumbnailUrl: thumbnailUrl, sourceUrl: sourceUrl,
+            sourcePlatform: sourcePlatform, authorName: authorName,
+            difficulty: difficulty, duration: duration,
+            editorNotes: editorNotes,
+            categoryId: categoryId, sortOrder: sortOrder
+        )
     }
 
     func learningPaths() -> [LearningPath] {
@@ -175,7 +201,8 @@ final class Database {
         var stmt: OpaquePointer?
         let sql = """
             SELECT c.id, c.title, c.summary, c.thumbnail_url, c.source_url,
-                   c.source_platform, c.author_name, c.category_id, c.sort_order
+                   c.source_platform, c.author_name, c.difficulty, c.duration,
+                   c.editor_notes, c.category_id, c.sort_order
             FROM contents c
             JOIN path_step_contents psc ON psc.content_id = c.id
             WHERE psc.step_id = ?
@@ -186,22 +213,7 @@ final class Database {
         sqlite3_bind_int(stmt, 1, Int32(stepId))
 
         while sqlite3_step(stmt) == SQLITE_ROW {
-            let id = Int(sqlite3_column_int(stmt, 0))
-            let title = String(cString: sqlite3_column_text(stmt, 1))
-            let summary = String(cString: sqlite3_column_text(stmt, 2))
-            let thumbnailUrl = String(cString: sqlite3_column_text(stmt, 3))
-            let sourceUrl = String(cString: sqlite3_column_text(stmt, 4))
-            let sourcePlatform = String(cString: sqlite3_column_text(stmt, 5))
-            let authorName = String(cString: sqlite3_column_text(stmt, 6))
-            let categoryId = Int(sqlite3_column_int(stmt, 7))
-            let sortOrder = Int(sqlite3_column_int(stmt, 8))
-
-            results.append(ContentItem(
-                id: id, title: title, summary: summary,
-                thumbnailUrl: thumbnailUrl, sourceUrl: sourceUrl,
-                sourcePlatform: sourcePlatform, authorName: authorName,
-                categoryId: categoryId, sortOrder: sortOrder
-            ))
+            results.append(parseContentRow(stmt))
         }
 
         sqlite3_finalize(stmt)
@@ -213,7 +225,7 @@ final class Database {
         var results: [ContentItem] = []
         var stmt: OpaquePointer?
         let placeholders = ids.map { _ in "?" }.joined(separator: ",")
-        let sql = "SELECT id, title, summary, thumbnail_url, source_url, source_platform, author_name, category_id, sort_order FROM contents WHERE id IN (\(placeholders))"
+        let sql = "SELECT id, title, summary, thumbnail_url, source_url, source_platform, author_name, difficulty, duration, editor_notes, category_id, sort_order FROM contents WHERE id IN (\(placeholders))"
 
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return results }
         for (index, id) in ids.enumerated() {
@@ -221,22 +233,7 @@ final class Database {
         }
 
         while sqlite3_step(stmt) == SQLITE_ROW {
-            let id = Int(sqlite3_column_int(stmt, 0))
-            let title = String(cString: sqlite3_column_text(stmt, 1))
-            let summary = String(cString: sqlite3_column_text(stmt, 2))
-            let thumbnailUrl = String(cString: sqlite3_column_text(stmt, 3))
-            let sourceUrl = String(cString: sqlite3_column_text(stmt, 4))
-            let sourcePlatform = String(cString: sqlite3_column_text(stmt, 5))
-            let authorName = String(cString: sqlite3_column_text(stmt, 6))
-            let categoryId = Int(sqlite3_column_int(stmt, 7))
-            let sortOrder = Int(sqlite3_column_int(stmt, 8))
-
-            results.append(ContentItem(
-                id: id, title: title, summary: summary,
-                thumbnailUrl: thumbnailUrl, sourceUrl: sourceUrl,
-                sourcePlatform: sourcePlatform, authorName: authorName,
-                categoryId: categoryId, sortOrder: sortOrder
-            ))
+            results.append(parseContentRow(stmt))
         }
 
         sqlite3_finalize(stmt)
@@ -251,7 +248,8 @@ final class Database {
         var stmt: OpaquePointer?
         let sql = """
             SELECT c.id, c.title, c.summary, c.thumbnail_url, c.source_url,
-                   c.source_platform, c.author_name, c.category_id, c.sort_order,
+                   c.source_platform, c.author_name, c.difficulty, c.duration,
+                   c.editor_notes, c.category_id, c.sort_order,
                    COALESCE(cat.name, '') AS category_name
             FROM contents c
             LEFT JOIN categories cat ON cat.id = c.category_id
@@ -266,24 +264,9 @@ final class Database {
         sqlite3_bind_text(stmt, 3, (pattern as NSString).utf8String, -1, nil)
 
         while sqlite3_step(stmt) == SQLITE_ROW {
-            let id = Int(sqlite3_column_int(stmt, 0))
-            let title = String(cString: sqlite3_column_text(stmt, 1))
-            let summary = String(cString: sqlite3_column_text(stmt, 2))
-            let thumbnailUrl = String(cString: sqlite3_column_text(stmt, 3))
-            let sourceUrl = String(cString: sqlite3_column_text(stmt, 4))
-            let sourcePlatform = String(cString: sqlite3_column_text(stmt, 5))
-            let authorName = String(cString: sqlite3_column_text(stmt, 6))
-            let categoryId = Int(sqlite3_column_int(stmt, 7))
-            let sortOrder = Int(sqlite3_column_int(stmt, 8))
-            let categoryName = String(cString: sqlite3_column_text(stmt, 9))
-
-            results.append(ContentItem(
-                id: id, title: title, summary: summary,
-                thumbnailUrl: thumbnailUrl, sourceUrl: sourceUrl,
-                sourcePlatform: sourcePlatform, authorName: authorName,
-                categoryId: categoryId, sortOrder: sortOrder,
-                categoryName: categoryName
-            ))
+            var item = parseContentRow(stmt)
+            item.categoryName = String(cString: sqlite3_column_text(stmt, 12))
+            results.append(item)
         }
 
         sqlite3_finalize(stmt)

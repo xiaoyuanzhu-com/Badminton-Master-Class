@@ -6,6 +6,7 @@ struct Category: Identifiable, Hashable {
     let icon: String
     let sortOrder: Int
     let parentId: Int?
+    var contentCount: Int = 0
 }
 
 struct ContentItem: Identifiable {
@@ -16,6 +17,9 @@ struct ContentItem: Identifiable {
     let sourceUrl: String
     let sourcePlatform: String
     let authorName: String
+    let difficulty: String
+    let duration: String
+    let editorNotes: String
     let categoryId: Int
     let sortOrder: Int
     var categoryName: String = ""

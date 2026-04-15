@@ -326,8 +326,16 @@ fun HomeScreen(
                                     )
                                     Text(
                                         text = category.name,
-                                        style = MaterialTheme.typography.bodyLarge
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        modifier = Modifier.weight(1f)
                                     )
+                                    if (category.contentCount > 0) {
+                                        Text(
+                                            text = "${category.contentCount} 个内容",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = SecondaryText
+                                        )
+                                    }
                                 }
                                 HorizontalDivider()
                             }
