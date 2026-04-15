@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -262,6 +263,7 @@ fun HomeScreen(
                             item {
                                 LearningPathsSection(
                                     paths = learningPaths,
+                                    userState = userState,
                                     onPathTap = onPathTap
                                 )
                             }
@@ -309,6 +311,7 @@ fun HomeScreen(
 @Composable
 private fun LearningPathsSection(
     paths: List<LearningPath>,
+    userState: UserState,
     onPathTap: (LearningPath) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -324,7 +327,11 @@ private fun LearningPathsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(paths) { path ->
-                LearningPathCard(path = path, onClick = { onPathTap(path) })
+                LearningPathCard(
+                    path = path,
+                    userState = userState,
+                    onClick = { onPathTap(path) }
+                )
             }
         }
 
@@ -335,8 +342,12 @@ private fun LearningPathsSection(
 @Composable
 private fun LearningPathCard(
     path: LearningPath,
+    userState: UserState,
     onClick: () -> Unit
 ) {
+    val completedCount = userState.pathProgress[path.id]?.size ?: 0
+    val progress = if (path.stepCount > 0) completedCount.toFloat() / path.stepCount else 0f
+
     Card(
         modifier = Modifier
             .width(200.dp)
@@ -366,17 +377,37 @@ private fun LearningPathCard(
                 overflow = TextOverflow.Ellipsis
             )
 
-            Surface(
-                shape = RoundedCornerShape(50),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                ) {
+                    Text(
+                        text = path.difficulty,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
+
                 Text(
-                    text = path.difficulty,
+                    text = "$completedCount/${path.stepCount} 完成",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp),
+                color = Color(0xFF007D48),
+                trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f),
+            )
         }
     }
 }

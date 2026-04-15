@@ -17,6 +17,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -35,10 +37,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bmc.app.data.Database
+import com.bmc.app.data.UserState
 import com.bmc.app.models.ContentItem
 import com.bmc.app.models.PathStep
 import com.bmc.app.util.DeepLink
@@ -53,6 +57,7 @@ fun PathDetailScreen(
     onBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val userState = remember { UserState.getInstance(context) }
     var steps by remember { mutableStateOf<List<PathStep>>(emptyList()) }
     var stepContents by remember { mutableStateOf<Map<Int, List<ContentItem>>>(emptyMap()) }
 
@@ -111,6 +116,8 @@ fun PathDetailScreen(
                 items(steps) { step ->
                     StepCard(
                         step = step,
+                        pathId = pathId,
+                        userState = userState,
                         contents = stepContents[step.id] ?: emptyList(),
                         onContentClick = { item ->
                             DeepLink.open(context, item.sourceUrl, item.sourcePlatform)
@@ -125,19 +132,35 @@ fun PathDetailScreen(
 @Composable
 private fun StepCard(
     step: PathStep,
+    pathId: Int,
+    userState: UserState,
     contents: List<ContentItem>,
     onContentClick: (ContentItem) -> Unit
 ) {
+    val isCompleted = userState.isStepCompleted(pathId, step.id)
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        // Step header with day number
+        // Step header with day number and completion toggle
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Completion toggle
+            IconButton(
+                onClick = { userState.toggleStepCompleted(pathId, step.id) },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    imageVector = if (isCompleted) Icons.Filled.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
+                    contentDescription = if (isCompleted) "标记未完成" else "标记完成",
+                    tint = if (isCompleted) Color(0xFF007D48) else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             // Day badge
             Surface(
                 shape = CircleShape,

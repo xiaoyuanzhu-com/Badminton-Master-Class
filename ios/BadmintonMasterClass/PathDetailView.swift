@@ -6,6 +6,7 @@ struct PathDetailView: View {
     @State private var steps: [PathStep] = []
     @State private var stepContents: [Int: [ContentItem]] = [:]
     @State private var selectedURL: URL?
+    @EnvironmentObject private var userState: UserState
 
     var body: some View {
         List {
@@ -15,7 +16,8 @@ struct PathDetailView: View {
                     HStack {
                         DifficultyBadgeInline(difficulty: path.difficulty)
                         Spacer()
-                        Text("\(path.stepCount) 步")
+                        let completed = userState.pathProgress[path.id]?.count ?? 0
+                        Text("\(completed)/\(path.stepCount) 完成")
                             .font(.caption)
                             .foregroundStyle(Color(red: 0x70/255.0, green: 0x70/255.0, blue: 0x72/255.0))
                     }
@@ -32,9 +34,19 @@ struct PathDetailView: View {
             // Steps
             ForEach(steps) { step in
                 Section {
-                    // Step header with day number and title
+                    // Step header with day number, title, and completion toggle
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 8) {
+                            // Completion toggle
+                            Button {
+                                userState.toggleStepComplete(pathId: path.id, stepId: step.id)
+                            } label: {
+                                Image(systemName: userState.isStepComplete(pathId: path.id, stepId: step.id) ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(userState.isStepComplete(pathId: path.id, stepId: step.id) ? Color(red: 0x00/255.0, green: 0x7D/255.0, blue: 0x48/255.0) : Color(red: 0x70/255.0, green: 0x70/255.0, blue: 0x72/255.0))
+                                    .font(.title3)
+                            }
+                            .buttonStyle(.plain)
+
                             if !step.day.isEmpty {
                                 Text(step.day)
                                     .font(.caption2)

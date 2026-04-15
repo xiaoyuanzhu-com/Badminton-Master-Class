@@ -165,6 +165,15 @@ struct HomeView: View {
 
 private struct PathCard: View {
     let path: LearningPath
+    @EnvironmentObject private var userState: UserState
+
+    private var completedCount: Int {
+        userState.pathProgress[path.id]?.count ?? 0
+    }
+
+    private var progress: Double {
+        path.stepCount > 0 ? Double(completedCount) / Double(path.stepCount) : 0
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -186,9 +195,14 @@ private struct PathCard: View {
                     .lineLimit(2)
             }
 
-            Text("\(path.stepCount) 步")
-                .font(.caption)
-                .foregroundStyle(Color(red: 0x70/255.0, green: 0x70/255.0, blue: 0x72/255.0))
+            HStack(spacing: 8) {
+                ProgressView(value: progress)
+                    .tint(Color(red: 0x00/255.0, green: 0x7D/255.0, blue: 0x48/255.0))
+
+                Text("\(completedCount)/\(path.stepCount) 完成")
+                    .font(.caption)
+                    .foregroundStyle(Color(red: 0x70/255.0, green: 0x70/255.0, blue: 0x72/255.0))
+            }
         }
         .padding(16)
         .frame(width: 220, alignment: .leading)

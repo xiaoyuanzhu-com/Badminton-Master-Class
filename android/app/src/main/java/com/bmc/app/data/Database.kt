@@ -117,7 +117,9 @@ class Database private constructor(context: Context) {
         val database = db ?: return results
 
         val cursor = database.rawQuery(
-            "SELECT id, title, summary, difficulty, sort_order FROM learning_paths ORDER BY sort_order",
+            """SELECT lp.id, lp.title, lp.summary, lp.difficulty, lp.sort_order,
+               (SELECT COUNT(*) FROM path_steps WHERE path_id = lp.id) AS step_count
+               FROM learning_paths lp ORDER BY lp.sort_order""",
             null
         )
 
@@ -129,7 +131,8 @@ class Database private constructor(context: Context) {
                         title = c.getString(1),
                         summary = c.getString(2),
                         difficulty = c.getString(3),
-                        sortOrder = c.getInt(4)
+                        sortOrder = c.getInt(4),
+                        stepCount = c.getInt(5)
                     )
                 )
             }
