@@ -6,12 +6,11 @@ Usage:
     python3 data/build.py              # compile only
     python3 data/build.py --upload     # compile + upload to OSS
 
-Thumbnail strategy (BUILD-2):
-    Thumbnails stay as files in the repo and are NOT bundled into SQLite.
-    Content items with a {slug}.png alongside them get a relative path stored
-    in thumbnail_url (e.g. "techniques/basics/grip/forehand-backhand-grip.png").
-    In the future, these will be uploaded to OSS/CDN and the URL rewritten.
-    For now, thumbnail_url is left empty in the DB.
+Thumbnail strategy (BUILD-2 → THUMB pipeline):
+    Content JSON files store a thumbnail_url pointing to the platform-hosted
+    thumbnail (e.g. Bilibili cover image, YouTube hqdefault.jpg). These URLs
+    are stable, public, and don't need our own CDN. build.py reads this field
+    and writes it into the thumbnail_url column in the compiled DB.
 """
 
 import json
@@ -168,9 +167,8 @@ def build_contents(
             data = load_json(fpath)
             slug = Path(fname).stem
 
-            # Check for thumbnail
-            png_path = dirpath / f"{slug}.png"
-            thumbnail_url = ""  # empty for now; future: OSS URL
+            # Use thumbnail_url from content JSON (platform-hosted URL)
+            thumbnail_url = data.get("thumbnail_url", "")
 
             # Resolve person
             person_slug = data.get("person", "")

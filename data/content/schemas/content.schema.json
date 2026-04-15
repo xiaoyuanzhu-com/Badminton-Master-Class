@@ -44,6 +44,11 @@
     "editor_notes": {
       "type": "string",
       "description": "Editorial notes about why this content is included"
+    },
+    "thumbnail_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL to the content thumbnail image (platform-hosted)"
     }
   }
 }

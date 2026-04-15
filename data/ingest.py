@@ -313,6 +313,7 @@ def write_content(
     person_slug: str,
     duration: str,
     summary: str = "",
+    thumbnail_url: str = "",
 ) -> Path:
     """Write the content JSON file and return the path."""
     folder = CONTENT_DIR / category_path
@@ -329,6 +330,8 @@ def write_content(
         content_data["summary"] = summary
     if duration:
         content_data["duration"] = duration
+    if thumbnail_url:
+        content_data["thumbnail_url"] = thumbnail_url
 
     filepath = folder / f"{slug}.json"
     with open(filepath, "w", encoding="utf-8") as f:
@@ -488,7 +491,15 @@ def main() -> int:
         slug = f"{slug}-{url_hash}"
         print(f"  New slug: {slug}")
 
-    # Step 6: Write content JSON
+    # Step 6: Resolve thumbnail URL
+    # For YouTube, use the deterministic thumbnail URL pattern
+    thumbnail_url = meta.get("thumbnail", "")
+    if platform == "youtube" and not thumbnail_url:
+        yt_match = re.search(r"(?:v=|youtu\.be/)([A-Za-z0-9_-]{11})", url)
+        if yt_match:
+            thumbnail_url = f"https://img.youtube.com/vi/{yt_match.group(1)}/hqdefault.jpg"
+
+    # Step 7: Write content JSON
     content_path = write_content(
         category_path=category_path,
         slug=slug,
@@ -497,18 +508,19 @@ def main() -> int:
         platform=platform,
         person_slug=person_slug,
         duration=meta["duration"],
+        thumbnail_url=thumbnail_url,
     )
     print(f"  Created: {content_path.relative_to(CONTENT_DIR)}")
 
-    # Step 7: Download thumbnail
+    # Step 8: Download thumbnail (local copy, optional)
     thumb_dest = content_path.with_suffix("")  # strip .json, download_thumbnail adds ext
     download_thumbnail(meta["thumbnail"], thumb_dest)
 
-    # Step 8: Validate
+    # Step 9: Validate
     print("\nRunning validator...")
     val_rc = run_validator()
 
-    # Step 9: Summary
+    # Step 10: Summary
     print("\n--- Summary ---")
     print(f"  Platform:  {platform}")
     print(f"  Title:     {meta['title']}")
