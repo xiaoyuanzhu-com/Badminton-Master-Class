@@ -16,6 +16,11 @@
       "type": "string",
       "minLength": 1,
       "description": "Emoji icon for the technique category"
+    },
+    "sort_order": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Explicit display order for the category (lower numbers appear first). Falls back to directory enumeration order if omitted."
     }
   }
 }

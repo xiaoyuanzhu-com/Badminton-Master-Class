@@ -125,9 +125,11 @@ def build_categories(cur: sqlite3.Cursor) -> dict[str, int]:
             data = load_json(technique_file)
             rel_path = str(entry.relative_to(TECHNIQUES_DIR))
 
+            explicit_order = data.get("sort_order", sort_order)
+
             cur.execute(
                 "INSERT INTO categories (name, icon, sort_order, parent_id) VALUES (?, ?, ?, ?)",
-                (data["name"], data.get("icon", ""), sort_order, parent_id),
+                (data["name"], data.get("icon", ""), explicit_order, parent_id),
             )
             cat_id = cur.lastrowid
             cat_map[rel_path] = cat_id
