@@ -2,20 +2,11 @@
   "$schema": "https://json-schema.org/draft-07/schema#",
   "$id": "person.schema.json",
   "title": "Person",
-  "description": "An author or content creator. File: people/{slug}.json",
+  "description": "An author or content creator. File: people/{slug}.json. Display name and bio resolved via locales. Avatar image is a sibling file with matching basename (e.g. yang-chen-da-shen.png).",
   "type": "object",
-  "required": ["name"],
+  "required": [],
   "additionalProperties": false,
   "properties": {
-    "name": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Display name of the person"
-    },
-    "bio": {
-      "type": "string",
-      "description": "Short biography"
-    },
     "platforms": {
       "type": "object",
       "description": "Platform profile URLs keyed by platform name",

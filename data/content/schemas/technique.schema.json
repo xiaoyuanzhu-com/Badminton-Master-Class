@@ -2,21 +2,11 @@
   "$schema": "https://json-schema.org/draft-07/schema#",
   "$id": "technique.schema.json",
   "title": "Technique",
-  "description": "A badminton technique category. Lives at _technique.json in each technique folder.",
+  "description": "A badminton technique. Lives at techniques/.../{slug}/{slug}.json — the file whose basename matches its parent dir is the category marker; other files in the dir are sub-technique leaves. Display name resolved via locales (keyed by full path, e.g. 'rearcourt/smash'). Poster is a sibling file with matching basename (e.g. smash.png).",
   "type": "object",
-  "required": ["name", "icon"],
+  "required": [],
   "additionalProperties": false,
   "properties": {
-    "name": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Display name of the technique category"
-    },
-    "icon": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Emoji icon for the technique category"
-    },
     "sort_order": {
       "type": "integer",
       "minimum": 0,

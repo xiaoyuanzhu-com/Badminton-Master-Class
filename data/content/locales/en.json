@@ -1,0 +1,47 @@
+{
+  "categories": {
+    "basics": "Basics",
+    "basics/grip": "Grip",
+    "deception": "Deception",
+    "fitness": "Fitness",
+    "fitness/fundamentals": "Fundamentals",
+    "fitness/motor-skills": "Motor Skills",
+    "footwork": "Footwork",
+    "forecourt": "Forecourt",
+    "forecourt/hook": "Hook",
+    "forecourt/lift": "Lift",
+    "forecourt/net-shot": "Net Shot",
+    "forecourt/pounce": "Pounce",
+    "forecourt/push": "Push",
+    "midcourt": "Midcourt",
+    "midcourt/block": "Block",
+    "midcourt/drive": "Drive",
+    "rearcourt": "Rearcourt",
+    "rearcourt/clear": "Clear",
+    "rearcourt/drop": "Drop",
+    "rearcourt/smash": "Smash",
+    "serve": "Serve",
+    "tactics": "Tactics",
+    "tactics/doubles": "Doubles",
+    "tactics/mixed-doubles": "Mixed Doubles",
+    "tactics/singles": "Singles"
+  },
+  "people": {
+    "badminton-insight": {
+      "name": "Badminton Insight",
+      "bio": "International badminton coaching channel with professional technical analysis"
+    },
+    "hui-cheng-jun": {
+      "name": "Hui Chengjun",
+      "bio": "Professional badminton coach creating systematic tutorials"
+    },
+    "li-yu-xuan": {
+      "name": "Li Yuxuan Badminton",
+      "bio": "Badminton instructor specializing in technical details"
+    },
+    "yang-chen-da-shen": {
+      "name": "Yang Chen",
+      "bio": "Popular badminton coach with millions of followers on Bilibili"
+    }
+  }
+}

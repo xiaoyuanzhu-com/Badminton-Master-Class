@@ -1,0 +1,47 @@
+{
+  "categories": {
+    "basics": "基础入门",
+    "basics/grip": "握拍",
+    "deception": "假动作",
+    "fitness": "体能训练",
+    "fitness/fundamentals": "基础体能",
+    "fitness/motor-skills": "专项运动能力",
+    "footwork": "步法",
+    "forecourt": "前场技术",
+    "forecourt/hook": "勾球",
+    "forecourt/lift": "挑球",
+    "forecourt/net-shot": "搓球",
+    "forecourt/pounce": "扑球",
+    "forecourt/push": "推球",
+    "midcourt": "中场技术",
+    "midcourt/block": "接杀挡球",
+    "midcourt/drive": "平抽球",
+    "rearcourt": "后场技术",
+    "rearcourt/clear": "高远球",
+    "rearcourt/drop": "吊球",
+    "rearcourt/smash": "杀球",
+    "serve": "发球",
+    "tactics": "战术",
+    "tactics/doubles": "双打战术",
+    "tactics/mixed-doubles": "混双战术",
+    "tactics/singles": "单打战术"
+  },
+  "people": {
+    "badminton-insight": {
+      "name": "Badminton Insight",
+      "bio": "国际羽毛球教学频道，专业技术分析"
+    },
+    "hui-cheng-jun": {
+      "name": "惠程俊",
+      "bio": "专业羽毛球教练，系统化教学内容创作者"
+    },
+    "li-yu-xuan": {
+      "name": "李宇轩羽毛球",
+      "bio": "羽毛球教学创作者，擅长技术细节讲解"
+    },
+    "yang-chen-da-shen": {
+      "name": "杨晨大神",
+      "bio": "知名羽毛球教学博主，B站百万粉丝羽毛球教练"
+    }
+  }
+}
