@@ -27,21 +27,233 @@
     "tactics/singles": "单打战术"
   },
   "people": {
+    "an-se-young": {
+      "name": "安洗莹",
+      "bio": "2024年巴黎奥运会女单冠军，韩国新星。"
+    },
+    "anders-antonsen": {
+      "name": "安东森",
+      "bio": "丹麦男单名将，世锦赛多次奖牌得主。"
+    },
+    "anthony-ginting": {
+      "name": "金廷",
+      "bio": "印尼男单名将，2020年东京奥运会铜牌得主。"
+    },
+    "badminton-bible": {
+      "name": "Badminton Bible",
+      "bio": "Mike Hopley 创办的羽毛球技术基础综合资料库。"
+    },
+    "badminton-built": {
+      "name": "Badminton Built",
+      "bio": "羽毛球专项体能与训练频道。"
+    },
+    "badminton-coach-ai": {
+      "name": "AI 羽毛球教练",
+      "bio": "Sachin Saini 运营的印度教学频道。"
+    },
+    "badminton-famly": {
+      "name": "Badminton Famly",
+      "bio": "丹麦高质量教学频道，提供职业级别的训练内容。"
+    },
     "badminton-insight": {
       "name": "Badminton Insight",
       "bio": "国际羽毛球教学频道，专业技术分析"
+    },
+    "badminton-xiao-wang": {
+      "name": "小王羽毛球",
+      "bio": "抖音/小红书博主，业余球友实用技巧分享。"
+    },
+    "cai-yun": {
+      "name": "蔡赟",
+      "bio": "2012年伦敦奥运会男双冠军，搭档傅海峰。"
+    },
+    "carolina-marin": {
+      "name": "马琳",
+      "bio": "2016年里约奥运会冠军，三届世锦赛冠军，西班牙标志性选手。"
+    },
+    "chen-long": {
+      "name": "谌龙",
+      "bio": "2016年里约奥运会男单冠军。"
+    },
+    "chen-qing-chen": {
+      "name": "陈清晨",
+      "bio": "2024年巴黎奥运会女双金牌得主，搭档贾一凡。"
+    },
+    "chen-yu-fei": {
+      "name": "陈雨菲",
+      "bio": "2020年东京奥运会女单冠军，前世界第一。"
+    },
+    "coach-andy": {
+      "name": "Coach Andy",
+      "bio": "英国教练，基础技术英文教学频道。"
+    },
+    "double-dragon-badminton": {
+      "name": "双龙羽毛球",
+      "bio": "B站频道，比赛回顾与技术分析。"
+    },
+    "fu-hai-feng": {
+      "name": "傅海峰",
+      "bio": "两届奥运会男双冠军（2008、2016），现已转型教练。"
+    },
+    "he-bing-jiao": {
+      "name": "何冰娇",
+      "bio": "2024年巴黎奥运会女单银牌得主，左手持拍全能型选手。"
+    },
+    "huang-ya-qiong": {
+      "name": "黄雅琼",
+      "bio": "2024年巴黎奥运会混双金牌得主，搭档郑思维。"
     },
     "hui-cheng-jun": {
       "name": "惠程俊",
       "bio": "专业羽毛球教练，系统化教学内容创作者"
     },
+    "jia-yi-fan": {
+      "name": "贾一凡",
+      "bio": "2024年巴黎奥运会女双金牌得主，搭档陈清晨。"
+    },
+    "jonas-badminton": {
+      "name": "Jonas 羽毛球",
+      "bio": "前马来西亚国家队球员，技术讲解频道。"
+    },
+    "jonatan-christie": {
+      "name": "乔纳坦",
+      "bio": "印尼男单选手，2024年全英赛冠军。"
+    },
+    "kyle-badminton": {
+      "name": "凯尔羽毛球",
+      "bio": "年轻博主，现代打法与体能训练方向。"
+    },
+    "lee-chong-wei": {
+      "name": "李宗伟",
+      "bio": "马来西亚传奇，三届奥运会银牌得主，曾连续199周世界第一。"
+    },
+    "lee-zii-jia": {
+      "name": "李梓嘉",
+      "bio": "马来西亚男单主力，2021年全英赛冠军。"
+    },
+    "li-yong-bo": {
+      "name": "李永波",
+      "bio": "中国羽毛球国家队前总教练，执教近二十年。"
+    },
     "li-yu-xuan": {
       "name": "李宇轩羽毛球",
       "bio": "羽毛球教学创作者，擅长技术细节讲解"
     },
+    "li-zai-feng": {
+      "name": "李在峰羽毛球",
+      "bio": "B站教学博主，技术细节讲解详尽，擅长新手教程。"
+    },
+    "liang-wei-keng": {
+      "name": "梁伟铿",
+      "bio": "2024年巴黎奥运会男双金牌得主，搭档王昶。"
+    },
+    "lin-dan": {
+      "name": "林丹",
+      "bio": "两届奥运会男单冠军，公认的史上最伟大男单选手。"
+    },
+    "liu-hui-ling-coach": {
+      "name": "刘辉玲教练",
+      "bio": "前中国国家队选手，现运营线上教学频道。"
+    },
+    "live-loud-badminton": {
+      "name": "Live Loud Badminton",
+      "bio": "娱乐向教学内容频道。"
+    },
+    "loh-kean-yew": {
+      "name": "骆建佑",
+      "bio": "2021年世锦赛男单冠军，新加坡最成功的男单选手。"
+    },
+    "mao-xi-badminton": {
+      "name": "毛希羽毛球",
+      "bio": "B站热门博主，比赛解析与技术内容。"
+    },
+    "meng-yan-coach": {
+      "name": "孟雁教练",
+      "bio": "小红书/抖音女教练，针对女球友的技术细节讲解。"
+    },
+    "mens-doubles-project": {
+      "name": "男双专题",
+      "bio": "专注双打战术与分析的 YouTube 频道。"
+    },
+    "momota-kento": {
+      "name": "桃田贤斗",
+      "bio": "前世界第一，两届世锦赛冠军，2020年伤病前曾统治男单赛场。"
+    },
+    "peter-gade": {
+      "name": "盖德",
+      "bio": "丹麦传奇，前世界第一，2011年全英赛冠军。"
+    },
+    "pusarla-sindhu": {
+      "name": "辛杜",
+      "bio": "印度女单名将，两届奥运会奖牌得主，2019年世锦赛冠军。"
+    },
+    "quan-long-badminton": {
+      "name": "权龙羽毛球",
+      "bio": "系统化教学频道，青少年训练方向。"
+    },
+    "saina-nehwal": {
+      "name": "塞娜·内瓦尔",
+      "bio": "首位登上女单世界第一的印度选手，2012年奥运会铜牌得主。"
+    },
+    "shi-yu-qi": {
+      "name": "石宇奇",
+      "bio": "2024年男单世界第一，以快攻打法闻名。"
+    },
+    "shuttle-amateur": {
+      "name": "Shuttle Amateur",
+      "bio": "业余视角的装备评测与打球技巧频道。"
+    },
+    "super-badminton": {
+      "name": "超级羽毛球",
+      "bio": "B站热门聚合频道，教学与比赛内容合集。"
+    },
+    "tai-tzu-ying": {
+      "name": "戴资颖",
+      "bio": "台湾羽坛传奇，前世界第一，以假动作手腕技术著称。"
+    },
+    "taufik-hidayat": {
+      "name": "陶菲克",
+      "bio": "2004年雅典奥运会冠军，印尼传奇，以反手技术著称。"
+    },
+    "viktor-axelsen": {
+      "name": "维克多·阿萨尔森",
+      "bio": "两届奥运会男单冠军（东京2020、巴黎2024），丹麦名将。"
+    },
+    "wang-chang": {
+      "name": "王昶",
+      "bio": "2024年巴黎奥运会男双金牌得主，搭档梁伟铿。"
+    },
+    "yamaguchi-akane": {
+      "name": "山口茜",
+      "bio": "前世界第一，两届世锦赛女单冠军（2021、2022）。"
+    },
     "yang-chen-da-shen": {
       "name": "杨晨大神",
       "bio": "知名羽毛球教学博主，B站百万粉丝羽毛球教练"
+    },
+    "yu-bo-yang-coach": {
+      "name": "于波扬教练",
+      "bio": "前专业选手转型线上教练，高水平战术分析。"
+    },
+    "yu-ji-cheng-badminton": {
+      "name": "羽记成羽毛球",
+      "bio": "业余球友向教练，分享实战训练与比赛素材。"
+    },
+    "zhang-ning": {
+      "name": "张宁",
+      "bio": "两届奥运会女单冠军（2004、2008）。"
+    },
+    "zhao-jian-hua": {
+      "name": "赵剑华",
+      "bio": "1980年代中国羽坛\"四大天王\"之一，前世界第一。"
+    },
+    "zhao-jian-hua-frame": {
+      "name": "赵剑华教学",
+      "bio": "中国羽坛传奇赵剑华的官方教学系列。"
+    },
+    "zheng-si-wei": {
+      "name": "郑思维",
+      "bio": "混双多届世界冠军，与黄雅琼搭档的传奇组合。"
     }
   }
 }

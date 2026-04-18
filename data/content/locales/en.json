@@ -27,21 +27,233 @@
     "tactics/singles": "Singles"
   },
   "people": {
+    "an-se-young": {
+      "name": "An Se-young",
+      "bio": "Paris 2024 Olympic women's singles gold medalist, Korean phenom."
+    },
+    "anders-antonsen": {
+      "name": "Anders Antonsen",
+      "bio": "Danish men's singles star, multiple World Championship medalist."
+    },
+    "anthony-ginting": {
+      "name": "Anthony Ginting",
+      "bio": "Indonesian men's singles star, Tokyo 2020 Olympic bronze medalist."
+    },
+    "badminton-bible": {
+      "name": "Badminton Bible",
+      "bio": "Mike Hopley's comprehensive resource on badminton technique fundamentals."
+    },
+    "badminton-built": {
+      "name": "Badminton Built",
+      "bio": "Fitness and off-court training channel tailored for badminton athletes."
+    },
+    "badminton-coach-ai": {
+      "name": "Badminton Coach AI",
+      "bio": "Sachin Saini's Indian-scene coaching channel."
+    },
+    "badminton-famly": {
+      "name": "Badminton Famly",
+      "bio": "High-production Danish channel delivering pro-level coaching."
+    },
     "badminton-insight": {
       "name": "Badminton Insight",
       "bio": "International badminton coaching channel with professional technical analysis"
+    },
+    "badminton-xiao-wang": {
+      "name": "Xiao Wang Badminton",
+      "bio": "Douyin/Xiaohongshu creator sharing concise tips for amateur players."
+    },
+    "cai-yun": {
+      "name": "Cai Yun",
+      "bio": "2012 London Olympic men's doubles gold medalist with Fu Haifeng."
+    },
+    "carolina-marin": {
+      "name": "Carolina Marín",
+      "bio": "2016 Rio Olympic champion, three-time World Champion, Spanish icon."
+    },
+    "chen-long": {
+      "name": "Chen Long",
+      "bio": "2016 Rio Olympic men's singles gold medalist."
+    },
+    "chen-qing-chen": {
+      "name": "Chen Qing Chen",
+      "bio": "Paris 2024 Olympic gold medalist in women's doubles with Jia Yi Fan."
+    },
+    "chen-yu-fei": {
+      "name": "Chen Yu Fei",
+      "bio": "2020 Tokyo Olympic women's singles gold medalist, former world #1."
+    },
+    "coach-andy": {
+      "name": "Coach Andy Badminton",
+      "bio": "UK-based coach producing fundamentals-focused English tutorials."
+    },
+    "double-dragon-badminton": {
+      "name": "Double Dragon Badminton",
+      "bio": "Bilibili channel with match reviews and technique analysis."
+    },
+    "fu-hai-feng": {
+      "name": "Fu Haifeng",
+      "bio": "Two-time Olympic men's doubles champion (2008, 2016), now a coach."
+    },
+    "he-bing-jiao": {
+      "name": "He Bing Jiao",
+      "bio": "2024 Paris Olympic women's singles silver medalist, left-handed all-court player."
+    },
+    "huang-ya-qiong": {
+      "name": "Huang Ya Qiong",
+      "bio": "Paris 2024 Olympic gold medalist in mixed doubles with Zheng Si Wei."
     },
     "hui-cheng-jun": {
       "name": "Hui Chengjun",
       "bio": "Professional badminton coach creating systematic tutorials"
     },
+    "jia-yi-fan": {
+      "name": "Jia Yi Fan",
+      "bio": "Paris 2024 Olympic gold medalist in women's doubles with Chen Qing Chen."
+    },
+    "jonas-badminton": {
+      "name": "Jonas Badminton",
+      "bio": "Former Malaysian national player with popular technique breakdowns."
+    },
+    "jonatan-christie": {
+      "name": "Jonatan Christie",
+      "bio": "Indonesian men's singles player, 2024 All England champion."
+    },
+    "kyle-badminton": {
+      "name": "Kyle Badminton",
+      "bio": "Young creator focused on modern game tactics and fitness."
+    },
+    "lee-chong-wei": {
+      "name": "Lee Chong Wei",
+      "bio": "Malaysian legend, three-time Olympic silver medalist, held world #1 for 199 weeks."
+    },
+    "lee-zii-jia": {
+      "name": "Lee Zii Jia",
+      "bio": "Malaysian men's singles ace, 2021 All England champion."
+    },
+    "li-yong-bo": {
+      "name": "Li Yongbo",
+      "bio": "Legendary head coach of the Chinese national badminton team for nearly two decades."
+    },
     "li-yu-xuan": {
       "name": "Li Yuxuan Badminton",
       "bio": "Badminton instructor specializing in technical details"
     },
+    "li-zai-feng": {
+      "name": "Li Zaifeng Badminton",
+      "bio": "Bilibili coach known for detailed technical breakdowns and beginner tutorials."
+    },
+    "liang-wei-keng": {
+      "name": "Liang Wei Keng",
+      "bio": "Paris 2024 men's doubles Olympic gold medalist with Wang Chang."
+    },
+    "lin-dan": {
+      "name": "Lin Dan",
+      "bio": "Two-time Olympic champion, widely regarded as the greatest men's singles player of all time."
+    },
+    "liu-hui-ling-coach": {
+      "name": "Coach Liu Huiling",
+      "bio": "Former Chinese national team member, now runs an online teaching channel."
+    },
+    "live-loud-badminton": {
+      "name": "Live Loud Badminton",
+      "bio": "Entertainment-driven instructional content."
+    },
+    "loh-kean-yew": {
+      "name": "Loh Kean Yew",
+      "bio": "2021 World Champion, Singapore's most successful men's singles player."
+    },
+    "mao-xi-badminton": {
+      "name": "Mao Xi Badminton",
+      "bio": "Popular Bilibili creator with match analysis and technique content."
+    },
+    "meng-yan-coach": {
+      "name": "Coach Meng Yan",
+      "bio": "Female coach on Xiaohongshu/Douyin, technique details for women players."
+    },
+    "mens-doubles-project": {
+      "name": "The Men's Doubles Project",
+      "bio": "YouTube channel dedicated to doubles tactics and analysis."
+    },
+    "momota-kento": {
+      "name": "Kento Momota",
+      "bio": "Former world #1, two-time World Champion, dominant before his 2020 injury."
+    },
+    "peter-gade": {
+      "name": "Peter Gade",
+      "bio": "Danish legend, former world #1, 2011 All England champion."
+    },
+    "pusarla-sindhu": {
+      "name": "P. V. Sindhu",
+      "bio": "Indian women's singles star, two-time Olympic medalist, 2019 World Champion."
+    },
+    "quan-long-badminton": {
+      "name": "Quan Long Badminton",
+      "bio": "Systematic teaching channel with a youth-coaching focus."
+    },
+    "saina-nehwal": {
+      "name": "Saina Nehwal",
+      "bio": "First Indian to reach world #1 in women's singles, 2012 Olympic bronze."
+    },
+    "shi-yu-qi": {
+      "name": "Shi Yu Qi",
+      "bio": "Chinese men's singles world #1 (2024), known for fast attacking play."
+    },
+    "shuttle-amateur": {
+      "name": "Shuttle Amateur",
+      "bio": "Amateur-perspective reviews, gear, and gameplay tips."
+    },
+    "super-badminton": {
+      "name": "Super Badminton",
+      "bio": "Popular Bilibili aggregator of tutorial and match content."
+    },
+    "tai-tzu-ying": {
+      "name": "Tai Tzu-ying",
+      "bio": "Taiwanese legend, former world #1, famous for deceptive wristwork."
+    },
+    "taufik-hidayat": {
+      "name": "Taufik Hidayat",
+      "bio": "2004 Athens Olympic champion, Indonesian icon, legendary backhand."
+    },
+    "viktor-axelsen": {
+      "name": "Viktor Axelsen",
+      "bio": "Two-time Olympic men's singles champion (Tokyo 2020, Paris 2024), Danish star."
+    },
+    "wang-chang": {
+      "name": "Wang Chang",
+      "bio": "Paris 2024 men's doubles Olympic gold medalist with Liang Wei Keng."
+    },
+    "yamaguchi-akane": {
+      "name": "Akane Yamaguchi",
+      "bio": "Former world #1, two-time World Champion (2021, 2022)."
+    },
     "yang-chen-da-shen": {
       "name": "Yang Chen",
       "bio": "Popular badminton coach with millions of followers on Bilibili"
+    },
+    "yu-bo-yang-coach": {
+      "name": "Coach Yu Boyang",
+      "bio": "Former professional player turned online coach, high-level tactical analysis."
+    },
+    "yu-ji-cheng-badminton": {
+      "name": "Yu Jicheng Badminton",
+      "bio": "Amateur-focused coach posting practical drills and match footage."
+    },
+    "zhang-ning": {
+      "name": "Zhang Ning",
+      "bio": "Two-time Olympic women's singles champion (2004, 2008)."
+    },
+    "zhao-jian-hua": {
+      "name": "Zhao Jianhua",
+      "bio": "One of the \"Four Heavenly Kings\" of 1980s Chinese badminton, former world #1."
+    },
+    "zhao-jian-hua-frame": {
+      "name": "Zhao Jianhua Tutorials",
+      "bio": "Official tutorial series from Chinese badminton legend Zhao Jianhua."
+    },
+    "zheng-si-wei": {
+      "name": "Zheng Si Wei",
+      "bio": "Multi-time world champion in mixed doubles, legendary partnership with Huang Ya Qiong."
     }
   }
 }

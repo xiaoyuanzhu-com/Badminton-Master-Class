@@ -2,14 +2,19 @@
   "$schema": "https://json-schema.org/draft-07/schema#",
   "$id": "person.schema.json",
   "title": "Person",
-  "description": "An author or content creator. File: people/{slug}.json. Display name and bio resolved via locales. Avatar image is a sibling file with matching basename (e.g. yang-chen-da-shen.png).",
+  "description": "A notable person featured in content — top player, coach, or content creator. File: people/{slug}.json. Display name and bio resolved via locales. Avatar image is a sibling file with matching basename (e.g. yang-chen-da-shen.png).",
   "type": "object",
   "required": [],
   "additionalProperties": false,
   "properties": {
+    "country": {
+      "type": "string",
+      "pattern": "^[a-z]{2}$",
+      "description": "ISO 3166-1 alpha-2 country code, lowercase (e.g. 'cn', 'dk', 'kr'). Used for flag display and filtering."
+    },
     "platforms": {
       "type": "object",
-      "description": "Platform profile URLs keyed by platform name",
+      "description": "Platform profile URLs keyed by platform name (e.g. bilibili, youtube, weibo, instagram)",
       "additionalProperties": {
         "type": "string",
         "format": "uri"
