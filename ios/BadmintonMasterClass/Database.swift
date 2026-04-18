@@ -117,13 +117,24 @@ actor Database {
     private func contents(categoryId: Int) -> [ContentItem] {
         var results: [ContentItem] = []
         var stmt: OpaquePointer?
-        let sql = "SELECT id, title, summary, thumbnail_url, source_url, source_platform, author_name, difficulty, duration, editor_notes, category_id, sort_order FROM contents WHERE category_id = ? ORDER BY sort_order"
+        let sql = """
+            SELECT c.id, c.title, c.summary, c.thumbnail_url, c.source_url,
+                   c.source_platform, c.author_name, c.difficulty, c.duration,
+                   c.editor_notes, c.category_id, c.sort_order,
+                   COALESCE(cat.name, '') AS category_name
+            FROM contents c
+            LEFT JOIN categories cat ON cat.id = c.category_id
+            WHERE c.category_id = ?
+            ORDER BY c.sort_order
+            """
 
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return results }
         sqlite3_bind_int(stmt, 1, Int32(categoryId))
 
         while sqlite3_step(stmt) == SQLITE_ROW {
-            results.append(parseContentRow(stmt))
+            var item = parseContentRow(stmt)
+            item.categoryName = String(cString: sqlite3_column_text(stmt, 12))
+            results.append(item)
         }
 
         sqlite3_finalize(stmt)
@@ -217,9 +228,11 @@ actor Database {
         let sql = """
             SELECT c.id, c.title, c.summary, c.thumbnail_url, c.source_url,
                    c.source_platform, c.author_name, c.difficulty, c.duration,
-                   c.editor_notes, c.category_id, c.sort_order
+                   c.editor_notes, c.category_id, c.sort_order,
+                   COALESCE(cat.name, '') AS category_name
             FROM contents c
             JOIN path_step_contents psc ON psc.content_id = c.id
+            LEFT JOIN categories cat ON cat.id = c.category_id
             WHERE psc.step_id = ?
             ORDER BY psc.sort_order
             """
@@ -228,7 +241,9 @@ actor Database {
         sqlite3_bind_int(stmt, 1, Int32(stepId))
 
         while sqlite3_step(stmt) == SQLITE_ROW {
-            results.append(parseContentRow(stmt))
+            var item = parseContentRow(stmt)
+            item.categoryName = String(cString: sqlite3_column_text(stmt, 12))
+            results.append(item)
         }
 
         sqlite3_finalize(stmt)

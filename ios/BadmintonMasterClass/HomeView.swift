@@ -148,8 +148,10 @@ struct HomeView: View {
             await DataSync.syncDatabase()
             async let cats = Database.shared.categoriesAsync(parentId: nil)
             async let paths = Database.shared.learningPathsAsync()
+            async let favs = Database.shared.contentsByIdsAsync(userState.favorites)
             categories = await cats
             learningPaths = await paths
+            favoriteItems = await favs
         }
     }
 
