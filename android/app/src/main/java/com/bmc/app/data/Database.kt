@@ -55,15 +55,29 @@ class Database private constructor(context: Context) {
         val results = mutableListOf<Category>()
         val database = db ?: return results
 
-        val sql = """
+        val sql = if (parentId != null) {
+            """
             SELECT c.id, c.name, c.icon, c.sort_order, c.parent_id,
                    (SELECT COUNT(*) FROM contents WHERE category_id = c.id)
                    + (SELECT COALESCE(SUM(sub_count), 0) FROM (
                        SELECT (SELECT COUNT(*) FROM contents WHERE category_id = sc.id) AS sub_count
                        FROM categories sc WHERE sc.parent_id = c.id
                    ))
-            FROM categories c WHERE c.parent_id ${if (parentId != null) "= ?" else "IS NULL"} ORDER BY c.sort_order
-        """.trimIndent()
+            FROM categories c WHERE c.parent_id = ?
+              AND EXISTS (SELECT 1 FROM contents WHERE category_id = c.id)
+            ORDER BY c.sort_order
+            """.trimIndent()
+        } else {
+            """
+            SELECT c.id, c.name, c.icon, c.sort_order, c.parent_id,
+                   (SELECT COUNT(*) FROM contents WHERE category_id = c.id)
+                   + (SELECT COALESCE(SUM(sub_count), 0) FROM (
+                       SELECT (SELECT COUNT(*) FROM contents WHERE category_id = sc.id) AS sub_count
+                       FROM categories sc WHERE sc.parent_id = c.id
+                   ))
+            FROM categories c WHERE c.parent_id IS NULL ORDER BY c.sort_order
+            """.trimIndent()
+        }
 
         val cursor = if (parentId != null) {
             database.rawQuery(sql, arrayOf(parentId.toString()))

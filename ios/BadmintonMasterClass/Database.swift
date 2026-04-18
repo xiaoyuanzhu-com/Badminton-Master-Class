@@ -78,7 +78,9 @@ actor Database {
                            SELECT (SELECT COUNT(*) FROM contents WHERE category_id = sc.id) AS sub_count
                            FROM categories sc WHERE sc.parent_id = c.id
                        ))
-                FROM categories c WHERE c.parent_id = ? ORDER BY c.sort_order
+                FROM categories c WHERE c.parent_id = ?
+                  AND EXISTS (SELECT 1 FROM contents WHERE category_id = c.id)
+                ORDER BY c.sort_order
                 """
             guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return results }
             sqlite3_bind_int(stmt, 1, Int32(parentId))
