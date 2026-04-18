@@ -2,7 +2,7 @@
 
 ## Meta
 - Created: 2026-04-15
-- Status: executing
+- Status: executing (Phase 0 ✅ done 2026-04-18; Phase 1 GROW next)
 - Depends on: RM-3 Learning Paths
 
 ## Plan
@@ -10,34 +10,34 @@
 
 ---
 
-### P0 — Phase 0: Browsing Stabilization (BLOCKING)
+### P0 — Phase 0: Browsing Stabilization — Status: ✅ done (2026-04-18)
 
 A pre-execution audit of basic browsing on both iOS and Android (2026-04-18) found that while the foundation is architecturally sound, several visible cracks would erode user trust if shown today: 60% missing thumbnails, 30% empty subcategory dead-ends, English difficulty labels on Android, no progress bar in path detail, and a latent iOS crash via Database race condition. Phase 0 closes these before product expansion begins.
 
-#### STAB — Browsing Stabilization
-Resequenced subset of META + BUGFIX + IOSFIX, plus 4 newly-surfaced gaps from the audit. All small. Lands as a tight bundle before HISTORY/FRESH/SHARE.
+#### STAB — Browsing Stabilization (✅ complete)
+Resequenced subset of META + BUGFIX + IOSFIX, plus 4 newly-surfaced gaps from the audit. Landed as a tight bundle. Full task log and commit SHAs in `docs/agent/epics/STAB-browsing-stabilization.md`.
 
-- [ ] STAB-1: IOSFIX-1 — Convert iOS `Database` to actor or route all ops through serial queue (eliminate `replaceWith` race) [🟢 | Medium]
-- [ ] STAB-2: IOSFIX-2 — Verify with concurrent sync + path detail load test [🟢 | Small]
-- [ ] STAB-3: BUGFIX-1 — Android path difficulty labels: replace raw English with `ContentDifficultyBadge` in `LearningPathCard` and `SearchPathRow` [🟢 | Small]
-- [ ] STAB-4: BUGFIX-3 — Add progress bar to path detail view on iOS and Android [🟢 | Small]
-- [ ] STAB-5: BUGFIX-4 — Hide empty subcategories from browse UI on iOS and Android (filter at query or render layer) [🟢 | Small]
-- [ ] STAB-6: META-3 — Backfill `thumbnail_url` for the 12 content items currently missing one [🟢 | Small]
-- [ ] STAB-7: META-1/2 — Backfill `duration` and write genuine `editor_notes` for all 20 existing items [🟡 | Medium — content work]
-- [ ] STAB-8: NEW — iOS `contents()` and `pathStepContents()` queries: JOIN categories so `categoryName` populates in browse mode (currently only set in search) [🟢 | Small]
-- [ ] STAB-9: NEW — iOS `HomeView.refreshable` reloads `favoriteItems` after sync (prevents stale rows) [🟢 | Small]
-- [ ] STAB-10: NEW — Android first-launch loading spinner during DB asset copy (avoid showing "暂无内容" empty state) [🟢 | Small]
-- [ ] STAB-11: NEW — Install JDK 17 on Mac mini, then verify Android build compiles and runs on device [🟢 | Small]
-- [ ] STAB-12: BUGFIX-2 — Web `search.html` header color alignment (Ink Black) [🟢 | Small]
+- ✅ STAB-1: IOSFIX-1 — Convert iOS `Database` to actor (eliminate `replaceWith` race) [`17fa817`]
+- ✅ STAB-2: IOSFIX-2 — Verify with concurrent sync + path detail load test [`17fa817`]
+- ✅ STAB-3: BUGFIX-1 — Android path difficulty labels: 入门/进阶/精通 [`61e0a7b`]
+- ✅ STAB-4: BUGFIX-3 — Aggregate progress bar on path detail (iOS + Android) [`828efae`]
+- ✅ STAB-5: BUGFIX-4 — Hide empty subcategories at query layer [`13be107`]
+- ✅ STAB-6: META-3 — Backfill `thumbnail_url` for 12 missing items [`89c32c2`]
+- ⏭️ STAB-7: META-1/2 — Backfill `duration` + `editor_notes` → **deferred to GROW** (see GROW-0)
+- ✅ STAB-8: NEW — iOS browse category JOIN (categoryName in browse, not just search) [`ad18a27`]
+- ✅ STAB-9: NEW — iOS reload favorites on pull-to-refresh [`ad18a27`]
+- ✅ STAB-10: NEW — Android first-launch spinner during DB asset copy [`f8ba193`]
+- ✅ STAB-11: NEW — Android build unblocked on Mac mini (gradle wrapper + JDK 17) [`c082eb3`, `641832b`]
+- ✅ STAB-12: BUGFIX-2 — Web `search.html` header Ink Black [`f8ba193`]
+- ✅ STAB-13: Android placeholder app icon (mipmap/ic_launcher) [`f550b84`]
+- ✅ STAB-14: Android Kotlin compile blockers (BuildConfig + material-icons-extended) [`641832b`]
 
-**Confidence:** 🟢 High — all tasks are small, well-scoped, and identified by audit.
-**Total effort:** Small-Medium bundle. Lands first, before any RM-4 product expansion.
-**Source:** Audit on 2026-04-18 covering both platforms (see `docs/agent/epics/STAB-browsing-stabilization.md`).
+**Result:** 11 tasks shipped, 1 deferred (STAB-7). Basic browsing on iOS + Android is stable enough for end-user testing of RM-4 product expansion.
 
 ---
 
-### P0 — Critical Fixes from RM-3 Testing (deferred — superseded by Phase 0)
-> The original META, BUGFIX, IOSFIX, SCHEMA EPICs below are preserved for context. STAB above subsumes their critical items. SCHEMA remains as its own follow-up.
+### P0 — Critical Fixes from RM-3 Testing (historical — superseded by Phase 0)
+> The META, BUGFIX, and IOSFIX EPICs below are the original RM-4 draft written before the Phase 0 audit. They are preserved as historical context. The STAB epic above executed and closed all critical items from META, BUGFIX, and IOSFIX. The remaining open items (META-1/2, i.e., duration + editor_notes backfill) were deferred to GROW as STAB-7. SCHEMA remains as its own follow-up (independent of Phase 0).
 
 #### META — Content Metadata Backfill
 RM-3 user testing revealed that `duration`, `editor_notes`, and `thumbnail_url` fields are mostly empty — making the UI features that display them dead code. This must be fixed before any new content work.
@@ -67,6 +67,9 @@ Ship the bugs and inconsistencies caught during RM-3 user testing. These erode t
 #### GROW — Content Library Growth (20 → 120+)
 7 of 26 subcategories are empty — 27% of the app is broken promises. The taxonomy implies breadth that the content does not deliver. Growing to 120+ items with full coverage is the single highest-leverage investment for RM-4.
 
+**GROW prerequisite — GROW-0 (pipeline repair):** Restore `data/build.py` to the post-restructure taxonomy before any large-scale content work. The RM-3 taxonomy restructure (`47c650f`) renamed `_technique.json` markers and moved content under `data/content/content/` — but `build.py` was never updated and now crashes with `KeyError: 'name'`. Discovered during STAB-6: the agent had to patch `bmc.db` directly because running `build.py` was not possible. Scope: (1) fix the `KeyError: 'name'` crash by aligning key names with the new JSON layout; (2) verify full build produces correct row counts; (3) decide whether `thumbnail_url` belongs as a DB column (current) or as sibling `.png` previews (future). Until GROW-0 is done, any content addition requires a manual DB patch rather than running through the pipeline — do not start GROW-1 through GROW-8 first.
+
+- [ ] GROW-0: Restore `data/build.py` pipeline post RM-3 restructure [🟡 | Medium — prerequisite for all GROW tasks]
 - [ ] GROW-1: Define per-category content targets — minimum 3 items per subcategory, 8+ for popular categories (basics, attack) [🟢 | Small — planning]
 - [ ] GROW-2: Fill 7 empty subcategories: `slice-drop`, `net-block`, `drive-block`, `pounce`, `rotation`, `serve-receive`, `flexibility` (14+ items minimum) [🟡 | Medium — content]
 - [ ] GROW-3: Deepen basics (grip, serve, clear, footwork) and attack (smash, drop) to 8+ items each [🟡 | Medium — content]
