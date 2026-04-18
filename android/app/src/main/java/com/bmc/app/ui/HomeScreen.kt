@@ -84,16 +84,21 @@ fun HomeScreen(
     var searchResults by remember { mutableStateOf<List<ContentItem>>(emptyList()) }
     var searchPathResults by remember { mutableStateOf<List<LearningPath>>(emptyList()) }
     var isRefreshing by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(true) }
     val isSearching = searchQuery.isNotBlank()
 
     // Read the snapshot so we recompose when favorites change
     val favoriteIds = userState.favorites.toList()
 
     LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) {
-            val db = Database.getInstance(context)
-            categories = db.categories(parentId = null)
-            learningPaths = db.learningPaths()
+        try {
+            withContext(Dispatchers.IO) {
+                val db = Database.getInstance(context)
+                categories = db.categories(parentId = null)
+                learningPaths = db.learningPaths()
+            }
+        } finally {
+            isLoading = false
         }
     }
 
@@ -241,7 +246,14 @@ fun HomeScreen(
                     }
                 }
             } else {
-                if (categories.isEmpty() && learningPaths.isEmpty() && favoriteContents.isEmpty()) {
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                } else if (categories.isEmpty() && learningPaths.isEmpty() && favoriteContents.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
