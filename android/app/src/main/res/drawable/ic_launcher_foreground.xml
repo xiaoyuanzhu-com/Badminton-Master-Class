@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- White "BMC" monogram centered on a transparent foreground layer -->
+    <!-- The adaptive icon system composites this over the background color -->
+
+    <!-- B glyph -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 20,30 L 20,78 L 35,78 Q 46,78 46,67.5 Q 46,61 41,58.5 Q 46,56 46,49.5 Q 46,30 35,30 Z
+                          M 27,36 L 34,36 Q 39,36 39,43 Q 39,50 34,50 L 27,50 Z
+                          M 27,56 L 34,56 Q 40,56 40,64 Q 40,72 34,72 L 27,72 Z"/>
+
+    <!-- M glyph -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 50,30 L 50,78 L 57,78 L 57,44 L 64,65 L 70,65 L 77,44 L 77,78 L 84,78 L 84,30 L 76,30 L 67,57 L 58,30 Z"/>
+
+    <!-- C glyph -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 88,54 Q 88,30 101,30 Q 108,30 112,36 L 107,40 Q 105,36 101,36 Q 95,36 95,54 Q 95,72 101,72 Q 105,72 107,68 L 112,72 Q 108,78 101,78 Q 88,78 88,54 Z"/>
+
+</vector>
