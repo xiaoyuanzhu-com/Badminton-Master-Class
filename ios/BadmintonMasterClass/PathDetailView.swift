@@ -13,14 +13,19 @@ struct PathDetailView: View {
             // Header section
             Section {
                 VStack(alignment: .leading, spacing: 8) {
+                    let completed = userState.pathProgress[path.id]?.count ?? 0
+                    let progressValue = path.stepCount > 0 ? Double(completed) / Double(path.stepCount) : 0.0
+
                     HStack {
                         DifficultyBadgeInline(difficulty: path.difficulty)
                         Spacer()
-                        let completed = userState.pathProgress[path.id]?.count ?? 0
                         Text("\(completed)/\(path.stepCount) 完成")
                             .font(.caption)
                             .foregroundStyle(Color(red: 0x70/255.0, green: 0x70/255.0, blue: 0x72/255.0))
                     }
+
+                    ProgressView(value: progressValue)
+                        .tint(Color(red: 0x00/255.0, green: 0x7D/255.0, blue: 0x48/255.0))
 
                     if !path.summary.isEmpty {
                         Text(path.summary)
