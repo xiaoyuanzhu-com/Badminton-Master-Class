@@ -421,17 +421,7 @@ private fun LearningPathCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                ) {
-                    Text(
-                        text = path.difficulty,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                    )
-                }
+                ContentDifficultyBadge(difficulty = path.difficulty)
 
                 Text(
                     text = "$completedCount/${path.stepCount} 完成",
@@ -486,17 +476,7 @@ private fun SearchPathRow(
             }
         }
 
-        Surface(
-            shape = RoundedCornerShape(50),
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-        ) {
-            Text(
-                text = path.difficulty,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-            )
-        }
+        ContentDifficultyBadge(difficulty = path.difficulty)
     }
 }
 
