@@ -22,19 +22,19 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		000000000000000000000001 /* BMCApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BMCApp.swift"; sourceTree = "<group>"; };
-		000000000000000000000003 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Models.swift"; sourceTree = "<group>"; };
-		000000000000000000000005 /* Database.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Database.swift"; sourceTree = "<group>"; };
-		000000000000000000000007 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HomeView.swift"; sourceTree = "<group>"; };
-		000000000000000000000009 /* CategoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CategoryView.swift"; sourceTree = "<group>"; };
-		00000000000000000000000B /* SafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SafariView.swift"; sourceTree = "<group>"; };
-		00000000000000000000000D /* DataSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DataSync.swift"; sourceTree = "<group>"; };
-		00000000000000000000000F /* bmc.db */ = {isa = PBXFileReference; lastKnownFileType = file; path = "bmc.db"; sourceTree = "<group>"; };
-		000000000000000000000015 /* BadmintonMasterClass.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "BadmintonMasterClass.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		000000000000000000000021 /* DeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DeepLink.swift"; sourceTree = "<group>"; };
-		000000000000000000000023 /* SyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SyncManager.swift"; sourceTree = "<group>"; };
-		000000000000000000000025 /* PathDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PathDetailView.swift"; sourceTree = "<group>"; };
-		000000000000000000000027 /* UserState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserState.swift"; sourceTree = "<group>"; };
+		000000000000000000000001 /* BMCApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BMCApp.swift; sourceTree = "<group>"; };
+		000000000000000000000003 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		000000000000000000000005 /* Database.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Database.swift; sourceTree = "<group>"; };
+		000000000000000000000007 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		000000000000000000000009 /* CategoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryView.swift; sourceTree = "<group>"; };
+		00000000000000000000000B /* SafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariView.swift; sourceTree = "<group>"; };
+		00000000000000000000000D /* DataSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSync.swift; sourceTree = "<group>"; };
+		00000000000000000000000F /* bmc.db */ = {isa = PBXFileReference; lastKnownFileType = file; path = bmc.db; sourceTree = "<group>"; };
+		000000000000000000000015 /* BadmintonMasterClass.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BadmintonMasterClass.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		000000000000000000000021 /* DeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLink.swift; sourceTree = "<group>"; };
+		000000000000000000000023 /* SyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncManager.swift; sourceTree = "<group>"; };
+		000000000000000000000025 /* PathDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathDetailView.swift; sourceTree = "<group>"; };
+		000000000000000000000027 /* UserState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserState.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,7 +96,7 @@
 /* Begin PBXNativeTarget section */
 		000000000000000000000016 /* BadmintonMasterClass */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 000000000000000000000019 /* Build configuration list for PBXNativeTarget */;
+			buildConfigurationList = 000000000000000000000019 /* Build configuration list for PBXNativeTarget "BadmintonMasterClass" */;
 			buildPhases = (
 				00000000000000000000001E /* Sources */,
 				000000000000000000000020 /* Frameworks */,
@@ -120,7 +120,7 @@
 				LastSwiftUpdateCheck = 1600;
 				LastUpgradeCheck = 1600;
 			};
-			buildConfigurationList = 000000000000000000000018 /* Build configuration list for PBXProject */;
+			buildConfigurationList = 000000000000000000000018 /* Build configuration list for PBXProject "BadmintonMasterClass" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = zh;
 			hasScannedForEncodings = 0;
@@ -223,6 +223,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEVELOPMENT_TEAM = R3845XW5FZ;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -243,6 +244,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEVELOPMENT_TEAM = R3845XW5FZ;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -263,7 +265,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		000000000000000000000018 /* Build configuration list for PBXProject */ = {
+		000000000000000000000018 /* Build configuration list for PBXProject "BadmintonMasterClass" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				00000000000000000000001A /* Debug */,
@@ -272,7 +274,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		000000000000000000000019 /* Build configuration list for PBXNativeTarget */ = {
+		000000000000000000000019 /* Build configuration list for PBXNativeTarget "BadmintonMasterClass" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				00000000000000000000001C /* Debug */,
