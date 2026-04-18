@@ -193,6 +193,26 @@ WEBPOL ──> WEBPOL-3 depends on PATH
 
 ## Execution Results
 
+### FIX (8/8 ✅)
+- FIX-0 `b2831d5` | FIX-1 `b55eb27` | FIX-2 `eb8236c` | FIX-3 `c33b974`
+- FIX-4 `10d7ae0` | FIX-5 `ddfef95` | FIX-6 `02ef5c9` | FIX-7 `d19d81c`
+
+### THUMB (3/3 ✅)
+- THUMB-1/2/3 `f01fd1e`
+
+### PATH (8/8 ✅)
+- PATH-1/2/3/4 `73b1cdc` | PATH-5 `63b1231` | PATH-6 `6470636` | PATH-7 `861f66c` | PATH-8 `cbd4f35`
+
+### STATE (9/9 ✅)
+- STATE-1/3/5 `5b01ade` | STATE-2/4/6 `c9df82c` | STATE-7/8 `cf54e3d` | STATE-9 verified safe
+
+### SRCH (4/4 ✅)
+- SRCH-1/2/3 `c0834ac` — Category badges, learning path search (iOS + Android)
+- SRCH-4 `a22f3e3` — Source links in web search results
+
+### PRSNT (4/4 ✅)
+- PRSNT-1/2/3/4 `ee4a8fb` — Content counts, difficulty badges, editor's notes, platform indicators (iOS + Android)
+
 ## Decisions Needed
 - THUMB: Quick-win (platform URLs in DB) vs. CDN pipeline? Recommend shipping THUMB-3 first, CDN later. Bilibili and YouTube thumbnail URLs are stable.
 - PATH: How many starter paths at launch? 2–3 seems right — one per difficulty level.
@@ -202,13 +222,55 @@ WEBPOL ──> WEBPOL-3 depends on PATH
 
 ## E2E & User Testing
 
+### E2E Results
+- Python validate + build: ✅ PASS (26 categories, 4 people, 20 contents, 3 paths, schema v3)
+- Go admin tests: ✅ 29/29 PASS
+- iOS build: ✅ PASS (iPhone 16, iOS 18.1)
+- Android build: ⚠️ BLOCKED (no JDK on Mac mini; needs `brew install openjdk@17`)
+- DB integrity: ✅ 3 paths, 24 steps, all FK references valid, 8/20 thumbnails
+- No bugs found in code. Zero fixes needed.
+
+### User Testing Findings (as intermediate badminton player)
+**Critical:**
+- Zero content items have `duration` or `editor_notes` populated — UI features are dead code for current dataset
+- Only 8/20 (40%) content items have thumbnails
+
+**Important:**
+- No onboarding or skill-level filter
+- Empty subcategories visible (7 of 26 have no content)
+- Search doesn't query category names or editor notes
+- Web search doesn't include learning paths (mobile does)
+- Android shows raw English difficulty strings on path cards ("beginner" not "入门")
+- No progress bar inside path detail view (only on home screen cards)
+- No dedicated My Favorites page
+- Web templates have inconsistent header colors (search.html uses Google blue, not Ink Black)
+
+**Nice-to-have:**
+- No "app not installed" messaging for deep link fallback
+- No "continue where you left off" in paths
+- No congratulations on path completion
+
 ## Product Research
+See `docs/agent/epics/PROD-research-rm4.md`. Top 5 proposed EPICs:
+1. GROW — Content scale-up (20→120+) [P0]
+2. HISTORY — Watch history & engagement tracking [P0]
+3. FRESH — Content freshness & re-engagement signals [P1]
+4. SHARE — Social sharing & organic growth [P1]
+5. STREAK — Practice streaks & daily goals [P2]
 
 ## Tech Audit
+See `docs/agent/epics/TECH-audit-rm3.md`. 5 major findings:
+1. iOS Database singleton not thread-safe (race condition on sync + query)
+2. `build_content_slug_map()` inefficient (re-reads all files, N queries)
+3. N+1 query pattern in path detail loading (all 3 platforms)
+4. `admin/schema.sql` and `data/schema.sql` stale (still v2)
+5. Android UserState saves synchronously on every mutation (no debounce)
+11 minor findings. 6 proposed tech EPICs for RM-4.
 
 ## Executive Review
+Link to review slide: docs/agent/roadmap/RM-3-review.html
 
 ## Next Roadmap
-Candidates for RM-4: Watch History (with SQLite user DB upgrade), Cross-Device Sync, Content Tags / Themes, Difficulty Filter Chips, Content Freshness Signals ("New This Week"), FTS5 Full-Text Search, Social Progress Sharing, Contributor Submission Flow, Push Notifications for New Content.
+Link to proposed next roadmap: docs/agent/roadmap/RM-4-content-and-engagement.md
 
 ## Handoff
