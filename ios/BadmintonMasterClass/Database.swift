@@ -1,7 +1,20 @@
 import Foundation
 import SQLite3
 
-final class Database {
+// MARK: - Serialization model
+//
+// Database is a Swift actor. All methods — queries and replaceWith() — execute
+// on the actor's serial executor. This means:
+//   • Concurrent callers (e.g. PathDetailView's withTaskGroup) are automatically
+//     serialized; no two methods touch `db` at the same time.
+//   • replaceWith() (called from DataSync after a successful download) cannot
+//     run while a query is in progress, eliminating the sqlite3_close() / active
+//     statement race that could crash on pull-to-refresh.
+//   • File I/O inside replaceWith() runs on the actor executor, not MainActor.
+//
+// Call sites use the existing `xxxAsync` names; no view changes are needed.
+
+actor Database {
     static let shared = Database()
 
     private var db: OpaquePointer?
@@ -52,7 +65,7 @@ final class Database {
 
     // MARK: - Queries
 
-    func categories(parentId: Int?) -> [Category] {
+    private func categories(parentId: Int?) -> [Category] {
         var results: [Category] = []
         var stmt: OpaquePointer?
 
@@ -99,7 +112,7 @@ final class Database {
         return results
     }
 
-    func contents(categoryId: Int) -> [ContentItem] {
+    private func contents(categoryId: Int) -> [ContentItem] {
         var results: [ContentItem] = []
         var stmt: OpaquePointer?
         let sql = "SELECT id, title, summary, thumbnail_url, source_url, source_platform, author_name, difficulty, duration, editor_notes, category_id, sort_order FROM contents WHERE category_id = ? ORDER BY sort_order"
@@ -139,7 +152,7 @@ final class Database {
         )
     }
 
-    func learningPaths() -> [LearningPath] {
+    private func learningPaths() -> [LearningPath] {
         var results: [LearningPath] = []
         var stmt: OpaquePointer?
         let sql = """
@@ -170,7 +183,7 @@ final class Database {
         return results
     }
 
-    func pathSteps(pathId: Int) -> [PathStep] {
+    private func pathSteps(pathId: Int) -> [PathStep] {
         var results: [PathStep] = []
         var stmt: OpaquePointer?
         let sql = "SELECT id, path_id, step_order, day, title, note FROM path_steps WHERE path_id = ? ORDER BY step_order"
@@ -196,7 +209,7 @@ final class Database {
         return results
     }
 
-    func pathStepContents(stepId: Int) -> [ContentItem] {
+    private func pathStepContents(stepId: Int) -> [ContentItem] {
         var results: [ContentItem] = []
         var stmt: OpaquePointer?
         let sql = """
@@ -220,7 +233,7 @@ final class Database {
         return results
     }
 
-    func contentsByIds(_ ids: [Int]) -> [ContentItem] {
+    private func contentsByIds(_ ids: [Int]) -> [ContentItem] {
         guard !ids.isEmpty else { return [] }
         var results: [ContentItem] = []
         var stmt: OpaquePointer?
@@ -242,7 +255,7 @@ final class Database {
         return ids.compactMap { lookup[$0] }
     }
 
-    func searchContents(keyword: String) -> [ContentItem] {
+    private func searchContents(keyword: String) -> [ContentItem] {
         var results: [ContentItem] = []
         guard !keyword.trimmingCharacters(in: .whitespaces).isEmpty else { return results }
         var stmt: OpaquePointer?
@@ -273,7 +286,7 @@ final class Database {
         return results
     }
 
-    func searchLearningPaths(keyword: String) -> [LearningPath] {
+    private func searchLearningPaths(keyword: String) -> [LearningPath] {
         var results: [LearningPath] = []
         guard !keyword.trimmingCharacters(in: .whitespaces).isEmpty else { return results }
         var stmt: OpaquePointer?
@@ -309,83 +322,46 @@ final class Database {
         return results
     }
 
-    // MARK: - Async wrappers (off-main-thread queries)
-
-    private static let queryQueue = DispatchQueue(label: "com.bmc.db.query", qos: .userInitiated)
+    // MARK: - Public async API (actor methods — serialized by the actor executor)
 
     func categoriesAsync(parentId: Int?) async -> [Category] {
-        await withCheckedContinuation { continuation in
-            Self.queryQueue.async {
-                let result = self.categories(parentId: parentId)
-                continuation.resume(returning: result)
-            }
-        }
+        categories(parentId: parentId)
     }
 
     func contentsAsync(categoryId: Int) async -> [ContentItem] {
-        await withCheckedContinuation { continuation in
-            Self.queryQueue.async {
-                let result = self.contents(categoryId: categoryId)
-                continuation.resume(returning: result)
-            }
-        }
+        contents(categoryId: categoryId)
     }
 
     func contentsByIdsAsync(_ ids: [Int]) async -> [ContentItem] {
-        await withCheckedContinuation { continuation in
-            Self.queryQueue.async {
-                let result = self.contentsByIds(ids)
-                continuation.resume(returning: result)
-            }
-        }
+        contentsByIds(ids)
     }
 
     func searchContentsAsync(keyword: String) async -> [ContentItem] {
-        await withCheckedContinuation { continuation in
-            Self.queryQueue.async {
-                let result = self.searchContents(keyword: keyword)
-                continuation.resume(returning: result)
-            }
-        }
+        searchContents(keyword: keyword)
     }
 
     func searchLearningPathsAsync(keyword: String) async -> [LearningPath] {
-        await withCheckedContinuation { continuation in
-            Self.queryQueue.async {
-                let result = self.searchLearningPaths(keyword: keyword)
-                continuation.resume(returning: result)
-            }
-        }
+        searchLearningPaths(keyword: keyword)
     }
 
     func learningPathsAsync() async -> [LearningPath] {
-        await withCheckedContinuation { continuation in
-            Self.queryQueue.async {
-                let result = self.learningPaths()
-                continuation.resume(returning: result)
-            }
-        }
+        learningPaths()
     }
 
     func pathStepsAsync(pathId: Int) async -> [PathStep] {
-        await withCheckedContinuation { continuation in
-            Self.queryQueue.async {
-                let result = self.pathSteps(pathId: pathId)
-                continuation.resume(returning: result)
-            }
-        }
+        pathSteps(pathId: pathId)
     }
 
     func pathStepContentsAsync(stepId: Int) async -> [ContentItem] {
-        await withCheckedContinuation { continuation in
-            Self.queryQueue.async {
-                let result = self.pathStepContents(stepId: stepId)
-                continuation.resume(returning: result)
-            }
-        }
+        pathStepContents(stepId: stepId)
     }
 
     // MARK: - Replace DB (for sync)
+    //
+    // Runs on the actor executor — serialized with all queries. The file I/O
+    // (close / remove / move / open) completes fully before any subsequent
+    // query can begin, preventing sqlite3_close() from racing with active
+    // sqlite3_step() calls in concurrent query tasks.
 
     func replaceWith(downloadedDBAt url: URL) {
         closeDatabase()

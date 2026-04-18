@@ -99,10 +99,10 @@ enum DataSync {
                 .appendingPathComponent(UUID().uuidString + ".db")
             try FileManager.default.moveItem(at: tempURL, to: stableTemp)
 
-            await MainActor.run {
-                Database.shared.replaceWith(downloadedDBAt: stableTemp)
-                SyncManager.shared.setSuccess()
-            }
+            // replaceWith() is an actor method — runs off MainActor, serialized
+            // with all queries. Only the UI state update needs MainActor.
+            await Database.shared.replaceWith(downloadedDBAt: stableTemp)
+            await MainActor.run { SyncManager.shared.setSuccess() }
         } catch {
             print("[DataSync] Download failed: \(error.localizedDescription)")
             await MainActor.run { SyncManager.shared.setFailed() }
